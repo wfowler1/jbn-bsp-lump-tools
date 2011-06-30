@@ -40,8 +40,8 @@ public class Lump05 {
 	}
 	
 	public void save(String path) {
+		File newFile=new File(path+"\\05 - Normals.hex");
 		try{
-			File newFile=new File(path+"\\05 - Normals.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -49,12 +49,18 @@ public class Lump05 {
 				newFile.createNewFile();
 			}
 			FileOutputStream normWriter = new FileOutputStream(newFile);
-			byte[] norms=new byte[length]; // Hoping this defaults to 0s
+			byte[] norms=new byte[length]; // In java, this conveniently fills with 0s by default
 			normWriter.write(norms);
 			normWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
+	}
+	
+	// save()
+	// Saves the lump, overwriting the one data was read from
+	public void save() {
+		save(data.getParent());
 	}
 	
 	// ACCESSORS/MUTATORS

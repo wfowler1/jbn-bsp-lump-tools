@@ -5,7 +5,6 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump08 {
 
@@ -22,19 +21,31 @@ public class Lump08 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump08(String in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump08(String in) {
 		data=new File(in);
-		numNodes=getNumElements();
-		nodes=new Node[numNodes];
-		populateNodeList();
+		try {
+			numNodes=getNumElements();
+			nodes=new Node[numNodes];
+			populateNodeList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump08(File in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump08(File in) {
 		data=in;
-		numNodes=getNumElements();
-		nodes=new Node[numNodes];
-		populateNodeList();
+		try {
+			numNodes=getNumElements();
+			nodes=new Node[numNodes];
+			populateNodeList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
@@ -50,8 +61,6 @@ public class Lump08 {
 				nodes[i]=new Node(datain);
 			}
 		} catch(InvalidNodeException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last node.");
-		} catch(java.io.IOException e) {
 			System.out.println("WARNING: Funny lump size in "+data+", ignoring last node.");
 		}
 		reader.close();
@@ -112,8 +121,8 @@ public class Lump08 {
 	// Save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\08 - Nodes.hex");
 		try {
-			File newFile=new File(path+"\\08 - Nodes.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -178,7 +187,7 @@ public class Lump08 {
 			}
 			nodeWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	

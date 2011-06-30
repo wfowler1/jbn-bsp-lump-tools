@@ -5,7 +5,6 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump09 {
 
@@ -18,26 +17,38 @@ public class Lump09 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump09(String in) throws java.io.FileNotFoundException {
+	public Lump09(String in) {
 		data=new File(in);
-		numFaces=getNumElements();
-		faces=new Face[numFaces];
-		populateFaceList();
+		try {
+			numFaces=getNumElements();
+			faces=new Face[numFaces];
+			populateFaceList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump09(File in) throws java.io.FileNotFoundException {
+	public Lump09(File in) {
 		data=in;
-		numFaces=getNumElements();
-		faces=new Face[numFaces];
-		populateFaceList();
+		try {
+			numFaces=getNumElements();
+			faces=new Face[numFaces];
+			populateFaceList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
 	
 	// -populateFaceList()
 	// Creates an array of all the faces in the lump using the instance data.
-	private void populateFaceList() throws java.io.FileNotFoundException {
+	private void populateFaceList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
 		try {
 			for(int i=0;i<numFaces;i++) {
@@ -45,12 +56,10 @@ public class Lump09 {
 				reader.read(datain);
 				faces[i]=new Face(datain);
 			}
-			reader.close();
 		} catch(InvalidFaceException e) {
 			System.out.println("WARNING: Funny lump size in "+data+", ignoring last face.");
-		} catch(java.io.IOException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last face.");
 		}
+		reader.close();
 	}
 	
 	// add(Face)
@@ -113,8 +122,8 @@ public class Lump09 {
 	// save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\09 - Faces.hex");
 		try {
-			File newFile=new File(path+"\\09 - Faces.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -196,7 +205,7 @@ public class Lump09 {
 			}
 			faceWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	
@@ -204,6 +213,21 @@ public class Lump09 {
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
 		save(data.getParent());
+	}
+	
+	// setAllToUnlit()
+	// Sets lightmap styles to 0 and lightmaps to 0, as if compiling skipped RAD.
+	// Effectively destroys lighting and makes everything fullbright.
+	// Only use as a last resort, it's essentially impossible to get this
+	// data back. I mostly wrote this to test the BSP combining method,
+	// since lightmaps were causing complications.
+	//
+	// The one upside of this is Lump10 can be completely empty.
+	public void setAllToUnlit() {
+		for(int i=0;i<numFaces;i++) {
+			faces[i].setLgtMaps(0);
+			faces[i].setLgtStyles(0);
+		}
 	}
 	
 	// ACCESSORS/MUTATORS

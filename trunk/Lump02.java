@@ -4,7 +4,7 @@
 // do not end in ".PNG" because the game engine reads them with no extension.
 
 import java.io.File;
-import java.util.*;
+import java.util.Scanner;
 import java.io.PrintWriter;
 
 public class Lump02 {
@@ -18,19 +18,27 @@ public class Lump02 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump02(String in) throws java.io.FileNotFoundException {
+	public Lump02(String in) {
 		data=new File(in);
-		numTxts=getNumElements();
-		textures=new String[numTxts];
-		populateTextureList();
+		try {
+			numTxts=getNumElements();
+			textures=new String[numTxts];
+			populateTextureList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump02(File in) throws java.io.FileNotFoundException {
+	public Lump02(File in) {
 		data=in;
-		numTxts=getNumElements();
-		textures=new String[numTxts];
-		populateTextureList();
+		try {
+			numTxts=getNumElements();
+			textures=new String[numTxts];
+			populateTextureList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		}
 	}
 	
 	// METHODS
@@ -71,7 +79,7 @@ public class Lump02 {
 			newList[i]=textures[i];
 		}
 		for(int i=0;i<in.getNumElements();i++) {
-			newList[i+numTxts]=textures[i];
+			newList[i+numTxts]=in.getTexture(i);
 		}
 		numTxts=numTxts+in.getNumElements();
 		textures=newList;
@@ -80,8 +88,8 @@ public class Lump02 {
 	// Save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\02 - Textures.hex");
 		try {
-			File newFile=new File(path+"\\02 - Textures.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -98,7 +106,7 @@ public class Lump02 {
 			}
 			textureWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	
@@ -106,6 +114,20 @@ public class Lump02 {
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
 		save(data.getParent());
+	}
+	
+	// Deletes a texture from the array by index
+	public void delTexture(int index) {
+		String[] newList=new String[numTxts-1];
+		for(int i=0;i<index;i++) {
+			if(i<index) {
+				newList[i]=textures[i];
+			} else {
+				newList[i]=textures[i+1];
+			}
+		}
+		numTxts--;
+		textures=newList;
 	}
 	
 	// ACCESSORS/MUTATORS

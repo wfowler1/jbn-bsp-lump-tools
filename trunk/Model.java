@@ -43,9 +43,29 @@ public class Model {
 		numFaces=inNumFaces;
 	}
 	
+	// This constructor takes all data in their proper data types with mins and maxs as float3s
+	public Model(float[] inMins, float[] inMaxs, int unk0, int unk1, int unk2, int unk3, int inLeaf, int inNumLeafs, int inFace, int inNumFaces) throws InvalidModelException {
+		if(inMins.length!=3 || inMaxs.length!=3) {
+			throw new InvalidModelException();
+		}
+		mins=inMins;
+		maxs=inMaxs;
+		unknown0=unk0;
+		unknown1=unk1;
+		unknown2=unk2;
+		unknown3=unk3;
+		leaf=inLeaf;
+		numLeafs=inNumLeafs;
+		face=inFace;
+		numFaces=inNumFaces;
+	}
+	
 	// This constructor takes 56 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Model(byte[] in) {
+	public Model(byte[] in) throws InvalidModelException {
+		if(in.length!=56) {
+			throw new InvalidModelException();
+		}
 		int myInt=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		mins[X]=Float.intBitsToFloat(myInt);
 		myInt=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
@@ -73,4 +93,115 @@ public class Model {
 	// METHODS
 	
 	// ACCESSORS/MUTATORS
+	public float getMinX() {
+		return mins[X];
+	}
+	
+	public void setMinX(float in) {
+		mins[X]=in;
+	}
+	
+	public float getMinY() {
+		return mins[Y];
+	}
+	
+	public void setMinY(float in) {
+		mins[Y]=in;
+	}
+	
+	public float getMinZ() {
+		return mins[Z];
+	}
+	
+	public void setMinZ(float in) {
+		mins[Z]=in;
+	}
+	
+	public float getMaxX() {
+		return maxs[X];
+	}
+	
+	public void setMaxX(float in) {
+		maxs[X]=in;
+	}
+	
+	public float getMaxY() {
+		return maxs[Y];
+	}
+	
+	public void setMaxY(float in) {
+		maxs[Y]=in;
+	}
+	
+	public float getMaxZ() {
+		return maxs[Z];
+	}
+	
+	public void setMaxZ(float in) {
+		maxs[Z]=in;
+	}
+	
+	public int getUnk0() {
+		return unknown0;
+	}
+	
+	public void setUnk0(int in) {
+		unknown0=in;
+	}
+	
+	public int getUnk1() {
+		return unknown1;
+	}
+	
+	public void setUnk1(int in) {
+		unknown1=in;
+	}
+	
+	public int getUnk2() {
+		return unknown2;
+	}
+	
+	public void setUnk2(int in) {
+		unknown2=in;
+	}
+	
+	public int getUnk3() {
+		return unknown3;
+	}
+	
+	public void setUnk3(int in) {
+		unknown3=in;
+	}
+	
+	public int getLeaf() {
+		return leaf;
+	}
+	
+	public void setLeaf(int in) {
+		leaf=in;
+	}
+	
+	public int getNumLeafs() {
+		return numLeafs;
+	}
+	
+	public void setNumLeafs(int in) {
+		numLeafs=in;
+	}
+	
+	public int getFace() {
+		return face;
+	}
+	
+	public void setFace(int in) {
+		face=in;
+	}
+	
+	public int getNumFaces() {
+		return numFaces;
+	}
+	
+	public void setNumFaces(int in) {
+		numFaces=in;
+	}
 }

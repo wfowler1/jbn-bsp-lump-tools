@@ -19,20 +19,18 @@
 // The strange thing about the NightFire (and the other) BSP files is the
 // virtual maze of data references. Leaves are born from Nodes created using
 // planes. Leaves then (indirectly) reference faces and brushes, which in turn
-// reference planes again (brushes through brush sides). The onle explanation
+// reference planes again (brushes through brush sides). The only explanation
 // I can come up with is faces and everything faces do handle how the map 
 // looks visually, while brushes define the map physically. These things could
 // have been handled as one thing, but they weren't for whatever reason.
+// I'd imagine planes and BSPtreeing are better for collision detection, while
+// vertices and triangles are best for rendering.
 
 // Perhaps an even stranger thing is how Nodes have bounding boxes and define
 // leaves, which have their own bounding boxes, then models use several leaves
 // and have THEIR own bounding boxes. How do these relate and interact, if at all?
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.PrintWriter;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
 import java.util.Date;
 
 public class NFBSP {
@@ -168,6 +166,123 @@ public class NFBSP {
 	
 	// METHODS
 	
+	// +optimizeBSP()
+	// This method will search through the entire BSP for duplicate
+	// data structures, and attempt to recycle them, making the map
+	// smaller. I don't know if the map compiler already does this,
+	// or if the game engine will like it.
+	//
+	// One limitation of this: it's very hard to recycle data structures
+	// referenced by one index then an amount of items (for example,
+	// brush sides or faces). I could see it happening for meshes, but
+	// it would be very complicated to do, moreso than it already is.
+	// As it is now, it's already complex enough to have each lump
+	// have its own optimization method.
+	//
+	// This could also lead to complications if further editing is done
+	// in the future. For this reason, this should only be used on BSPs
+	// being finalized or almost read for release.
+	public void optimizeBSP() {
+		// One lump at a time, in order of lumps. If a lump cannot be
+		// optimized, and explanation is provided.
+		
+		// Every entitiy is unique and cannot be optimized.
+		optimizePlanes();
+		optimizeTextures(); // A compiler will never allow duplicates in this one,
+		                    // so it's mostly for when something has been added
+		optimizeMaterials();
+		// Vertices are referenced in index/item pairs, with insufficient redundancy
+		// Normals cannot be recycled as the lump must be the same size as vertices
+		optimizeMeshes(); // TODO: I think I know a way to do this
+		optimizeVisibility(); // Visibility is a ridiculous pile of garbage. But it's possible...
+		// Nodes are always unique.
+		// Faces are referenced many times, and once in an index/items pair. Don't try this.
+		// There may be enough redundancy in the lighting structure, but since I don't know
+			// how to determine how many pixels are loaded by a face, I've hit a brick wall.
+		// Leaves should always be unique.
+		// Leaf faces are referenced by index/items, which will be unique.
+		// Same with leaf brushes.
+		// Models, don't make me laugh.
+		// Brushes may be possible, but are probably all unique.
+		// Brush sides probably need to reference a specific face.
+		optimizeTexMatrix(); // Should be plenty of redundancy here!
+		r.gc();
+	}
+	
+	// optimizePlanes()
+	// Finds duplicate planes, and eliminates them and attempts to recycle
+	// them instead. This is complicated by the fact that planes are referenced
+	// by several different lumps each for their own purposes. However, it is
+	// for that same reason planes are probably ripe for optimization.
+	public void optimizePlanes() {
+		
+	}
+	
+	// optimizeTextures()
+	// Finds duplicate textures and fixes references to them in faces. Quite
+	// easy to do since only one lump references this one.
+	// Iterators:
+	// i: index of the first texture
+	// j: index of the second texture
+	// k: when textures i and j are the same, this is the current face
+	public void optimizeTextures() {
+		int numTxts=myL2.getNumElements();
+		for(int i=0;i<numTxts-1;i++) {
+			String firstTxt=myL2.getTexture(i);
+			for(int j=i+1;j<numTxts;j++) {
+				String secondTxt=myL2.getTexture(j);
+				if(firstTxt.equalsIgnoreCase(secondTxt)) { // if a duplicate is found
+					for(int k=0;k<myL9.getNumElements();k++) {
+						if(myL9.getFace(k).getTexture()==j) { // Find any faces that reference texture j
+							myL9.getFace(k).setTexture(i); // and instead reference texture i
+						}
+					}
+					myL2.delTexture(j); // delete duplicate
+					numTxts--; // The array has gotten smaller
+					j--; // since element j+1 is now element j, we must check j again
+				}
+			}
+		}
+	}
+	
+	// optimizeMaterials()
+	// Finds duplicate materials and fixes references to them in faces.
+	// Iterators:
+	// i: index of the first material
+	// j: index of the second material
+	// k: when materials i and j are the same, this is the current face
+	public void optimizeMaterials() {
+		int numMats=myL3.getNumElements();
+		for(int i=0;i<numMats-1;i++) {
+			String firstMat=myL3.getMaterial(i);
+			for(int j=i+1;j<numMats;j++) {
+				String secondMat=myL3.getMaterial(j);
+				if(firstMat.equalsIgnoreCase(secondMat)) { // if a duplicate is found
+					for(int k=0;k<myL9.getNumElements();k++) {
+						if(myL9.getFace(k).getTexture()==j) { // Find any faces that reference texture j
+							myL9.getFace(k).setTexture(i); // and instead reference texture i
+						}
+					}
+					myL3.delMaterial(j); // delete duplicate
+					numMats--; // The array has gotten smaller
+					j--; // since element j+1 is now element j, we must check j again
+				}
+			}
+		}
+	}
+	
+	public void optimizeMeshes() {
+		;
+	}
+	
+	public void optimizeVisibility() {
+		;
+	}
+	
+	public void optimizeTexMatrix() {
+		;
+	}
+	
 	// +combineBSP(NFBSP)
 	// One of the most ridiculous things I've ever coded. This method
 	// will take another NFBSP class and combine the data between this
@@ -202,6 +317,14 @@ public class NFBSP {
 	//
 	// One possible solution is to decompile and recompile the map after this
 	// process is run, but (for now) that is beyond the scope of this program.
+	//
+	// TODO: Figure out why lighting gets fucked up in the process
+	// TODO: Create two dummy nodes with a plane at like 16000 coords from the
+	// origin and have them reference the root nodes of both maps. Need testing
+	// though, if the nodes on the source maps are on the wrong side of the 
+	// plane, they probably won't show up at all.
+	// TODO: Move all world faces and world leaves together in their lumps
+	// and make sure model #1 references all of them. This will be a toughie.
 	public void combineBSP(NFBSP other) {
 		try {
 			myL0.add(other.getLump00());
@@ -211,10 +334,27 @@ public class NFBSP {
 			myL4.add(other.getLump04());
 			myL5.add(other.getLump05());
 			myL6.add(other.getLump06());
-			// myL7.add(other.getLump07());
+			
+			byte[][] newVis=new byte[0][0]; // one practical application of arrays
+			                                // with length 0
+			myL7.setPVSes(newVis);
+			
 			myL8.add(other.getLump08());
+			
 			myL9.add(other.getLump09());
+			
 			myL10.add(other.getLump10());
+			// myL10.delAllPixels();
+			
+			myL11.add(other.getLump11());
+			myL11.setAllToVisible();
+			
+			myL12.add(other.getLump12());
+			myL13.add(other.getLump13());
+			myL14.add(other.getLump14());
+			myL15.add(other.getLump15());
+			myL16.add(other.getLump16());
+			myL17.add(other.getLump17());
 			modified=true;
 		} catch(java.io.FileNotFoundException e) {
 			System.out.println("Cannot find second BSP's files!");
@@ -257,6 +397,16 @@ public class NFBSP {
 			myL11.save(path);
 			System.out.println("Saving mark surfaces...");
 			myL12.save(path);
+			System.out.println("Saving mark brushes...");
+			myL13.save(path);
+			System.out.println("Saving models...");
+			myL14.save(path);
+			System.out.println("Saving brushes...");
+			myL15.save(path);
+			System.out.println("Saving brush sides...");
+			myL16.save(path);
+			System.out.println("Saving texture matrix...");
+			myL17.save(path);
 		}
 		Date post=new Date();
 		System.out.println(post.getTime()-pre.getTime()+" milliseconds elapsed");
@@ -317,5 +467,25 @@ public class NFBSP {
 	
 	public Lump12 getLump12() {
 		return myL12;
+	}
+	
+	public Lump13 getLump13() {
+		return myL13;
+	}
+	
+	public Lump14 getLump14() {
+		return myL14;
+	}
+	
+	public Lump15 getLump15() {
+		return myL15;
+	}
+	
+	public Lump16 getLump16() {
+		return myL16;
+	}
+	
+	public Lump17 getLump17() {
+		return myL17;
 	}
 }

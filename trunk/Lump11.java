@@ -6,7 +6,6 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump11 {
 
@@ -19,19 +18,31 @@ public class Lump11 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump11(String in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump11(String in) {
 		data=new File(in);
-		numLeaves=getNumElements();
-		leaves=new Leaf[numLeaves];
-		populateLeafList();
+		try {
+			numLeaves=getNumElements();
+			leaves=new Leaf[numLeaves];
+			populateLeafList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump11(File in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump11(File in) {
 		data=in;
-		numLeaves=getNumElements();
-		leaves=new Leaf[numLeaves];
-		populateLeafList();
+		try {
+			numLeaves=getNumElements();
+			leaves=new Leaf[numLeaves];
+			populateLeafList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
@@ -73,6 +84,9 @@ public class Lump11 {
 	
 	// add(Lump11)
 	// Adds every face in another Lump11 object.
+	// TODO: Put all world leaves before model leaves. These can be determined by looking
+	// at model 0 in Lump14, which is the world model. Models only reference leaves by
+	// index and amount, so leaves must be in the right places for referencing to work.
 	public void add(Lump11 in) {
 		Leaf[] newList=new Leaf[numLeaves+in.getNumElements()];
 		// TODO: determine the feasibility of actually adding visibility data. Seems
@@ -99,8 +113,8 @@ public class Lump11 {
 	// save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\11 - Leaves.hex");
 		try {
-			File newFile=new File(path+"\\11 - Leaves.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -182,10 +196,26 @@ public class Lump11 {
 			}
 			leafWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
+	
+	// save()
+	// Saves the lump, overwriting the one data was read from
+	public void save() {
+		save(data.getParent());
+	}
 
+	// +setAllToVisible()
+	// Sets the visibility reference for all leaves to FFFFFFFF. This is the same
+	// thing the BBSP compiler does for all maps prior to running BVIS.
+	public void setAllToVisible() {
+		for(int i=0;i<numLeaves;i++) {
+			leaves[i].setPVS(-1); // -1 is the signed int equivalent of FFFFFFFF
+		}
+	}
+	
+	
 	
 	// ACCESSORS/MUTATORS
 	

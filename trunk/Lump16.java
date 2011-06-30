@@ -7,7 +7,6 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump16 {
 
@@ -20,19 +19,31 @@ public class Lump16 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump16(String in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump16(String in) {
 		data=new File(in);
-		numBrshsds=getNumElements();
-		brushsides=new BrushSide[numBrshsds];
-		populateBrushSideList();
+		try {
+			numBrshsds=getNumElements();
+			brushsides=new BrushSide[numBrshsds];
+			populateBrushSideList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump16(File in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump16(File in) {
 		data=in;
-		numBrshsds=getNumElements();
-		brushsides=new BrushSide[numBrshsds];
-		populateBrushSideList();
+		try {
+			numBrshsds=getNumElements();
+			brushsides=new BrushSide[numBrshsds];
+			populateBrushSideList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
@@ -42,15 +53,93 @@ public class Lump16 {
 	// array of BrushSide objects with the data from the file
 	private void populateBrushSideList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		for(int i=0;i<numBrshsds;i++) {
-			byte[] datain=new byte[8];
-			reader.read(datain);
-			brushsides[i]=new BrushSide(datain);
+		try {
+			for(int i=0;i<numBrshsds;i++) {
+				byte[] datain=new byte[8];
+				reader.read(datain);
+				brushsides[i]=new BrushSide(datain);
+			}
+			reader.close();
+		} catch(InvalidBrushSideException e) {
+			System.out.println("WARNING: Funny lump size in "+data+", ignoring last brush side.");
 		}
-		reader.close();
 	}
 	
-	// Accessors/mutators
+	// add(BrushSide)
+	// Adds a brush side which is already a BrushSide object. Easiest to do.
+	public void add(BrushSide in) {
+		BrushSide[] newList=new BrushSide[numBrshsds+1];
+		for(int i=0;i<numBrshsds;i++) {
+			newList[i]=brushsides[i];
+		}
+		newList[numBrshsds]=in;
+		numBrshsds++;
+		brushsides=newList;
+	}
+	
+	// add (int int)
+	// Adds a brush side defined by data alone. Still easy.
+	public void add(int inPlane, int inFace) {
+		add(new BrushSide(inPlane, inFace));
+	}
+	
+	// add(Lump16)
+	// Adds every brush side in another Lump16 object.
+	public void add(Lump16 in) {
+		BrushSide[] newList=new BrushSide[numBrshsds+in.getNumElements()];
+		File myLump01=new File(data.getParent()+"//01 - Planes.hex");
+		int sizeL01=(int)myLump01.length()/20;
+		File myLump09=new File(data.getParent()+"//09 - Faces.hex");
+		int sizeL09=(int)myLump09.length()/48;
+		for(int i=0;i<numBrshsds;i++) {
+			newList[i]=brushsides[i];
+		}
+		
+		for(int i=0;i<in.getNumElements();i++) {
+			newList[i+numBrshsds]=in.getBrushSide(i);
+			newList[i+numBrshsds].setPlane(newList[i+numBrshsds].getPlane()+sizeL01);
+			newList[i+numBrshsds].setFace(newList[i+numBrshsds].getFace()+sizeL09);
+		}
+		numBrshsds=numBrshsds+in.getNumElements();
+		brushsides=newList;
+	}
+
+	// save(String)
+	// Saves the lump to the specified path.
+	public void save(String path) {
+		File newFile=new File(path+"\\16 - Brushsides.hex");
+		try {
+			if(!newFile.exists()) {
+				newFile.createNewFile();
+			} else {
+				newFile.delete();
+				newFile.createNewFile();
+			}
+			FileOutputStream brushsideWriter=new FileOutputStream(newFile);
+			for(int i=0;i<numBrshsds;i++) {
+				// This is MUCH faster than using DataOutputStream.
+				byte[] output={(byte)((brushsides[i].getPlane() >> 0) & 0xFF), (byte)((brushsides[i].getPlane() >> 8) & 0xFF),
+				               (byte)((brushsides[i].getPlane() >> 16) & 0xFF), (byte)((brushsides[i].getPlane() >> 24) & 0xFF)};
+				brushsideWriter.write(output);
+				output[3]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
+				output[2]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
+				output[1]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
+				output[0]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
+				brushsideWriter.write(output);
+			}
+			brushsideWriter.close();
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
+		}
+	}
+	
+	// save()
+	// Saves the lump, overwriting the one data was read from
+	public void save() {
+		save(data.getParent());
+	}
+	
+	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
@@ -64,5 +153,17 @@ public class Lump16 {
 		} else {
 			return numBrshsds;
 		}
+	}
+	
+	public BrushSide getBrushSide(int i) {
+		return brushsides[i];
+	}
+	
+	public BrushSide[] getBrushSides() {
+		return brushsides;
+	}
+	
+	public void setBrushSide(int i, BrushSide in) {
+		brushsides[i]=in;
 	}
 }

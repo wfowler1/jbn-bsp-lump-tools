@@ -4,7 +4,7 @@
 // do not end in ".RMT" because the game engine reads them with no extension.
 
 import java.io.File;
-import java.util.*;
+import java.util.Scanner;
 import java.io.PrintWriter;
 
 public class Lump03 {
@@ -18,19 +18,27 @@ public class Lump03 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump03(String in) throws java.io.FileNotFoundException {
+	public Lump03(String in) {
 		data=new File(in);
-		numMtrls=getNumElements();
-		materials=new String[numMtrls];
-		populateMaterialList();
+		try {
+			numMtrls=getNumElements();
+			materials=new String[numMtrls];
+			populateMaterialList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump03(File in) throws java.io.FileNotFoundException {
+	public Lump03(File in) {
 		data=in;
-		numMtrls=getNumElements();
-		materials=new String[numMtrls];
-		populateMaterialList();
+		try {
+			numMtrls=getNumElements();
+			materials=new String[numMtrls];
+			populateMaterialList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		}
 	}
 	
 	// METHODS
@@ -70,7 +78,7 @@ public class Lump03 {
 			newList[i]=materials[i];
 		}
 		for(int i=0;i<in.getNumElements();i++) {
-			newList[i+numMtrls]=materials[i];
+			newList[i+numMtrls]=in.getMaterial(i);
 		}
 		numMtrls=numMtrls+in.getNumElements();
 		materials=newList;
@@ -79,8 +87,8 @@ public class Lump03 {
 	// Save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\03 - Materials.hex");
 		try {
-			File newFile=new File(path+"\\03 - Materials.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -97,7 +105,7 @@ public class Lump03 {
 			}
 			materialWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	
@@ -105,6 +113,20 @@ public class Lump03 {
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
 		save(data.getParent());
+	}
+	
+	// Deletes a material from the array by index
+	public void delMaterial(int index) {
+		String[] newList=new String[numMtrls-1];
+		for(int i=0;i<index;i++) {
+			if(i<index) {
+				newList[i]=materials[i];
+			} else {
+				newList[i]=materials[i+1];
+			}
+		}
+		numMtrls--;
+		materials=newList;
 	}
 	
 	// ACCESSORS/MUTATORS

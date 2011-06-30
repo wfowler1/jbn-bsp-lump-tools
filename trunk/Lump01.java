@@ -18,26 +18,38 @@ public class Lump01 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump01(String in) throws java.io.FileNotFoundException {
+	public Lump01(String in) {
 		data=new File(in);
-		numPlns=getNumElements();
-		planes=new Plane[numPlns];
-		populatePlaneList();
+		try {
+			numPlns=getNumElements();
+			planes=new Plane[numPlns];
+			populatePlaneList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump01(File in) throws java.io.FileNotFoundException {
+	public Lump01(File in) {
 		data=in;
-		numPlns=getNumElements();
-		planes=new Plane[numPlns];
-		populatePlaneList();
+		try {
+			numPlns=getNumElements();
+			planes=new Plane[numPlns];
+			populatePlaneList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
 	
 	// -populatePlaneList()
 	// Parses all data into an array of Plane.
-	private void populatePlaneList() throws java.io.FileNotFoundException {
+	private void populatePlaneList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
 		try {
 			for(int i=0;i<numPlns;i++) {
@@ -45,12 +57,10 @@ public class Lump01 {
 				reader.read(datain);
 				planes[i]=new Plane(datain);
 			}
-			reader.close();
 		} catch(InvalidPlaneException e) {
 			System.out.println("WARNING: Funny lump size in "+data+", ignoring last plane.");
-		} catch(java.io.IOException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last plane.");
 		}
+		reader.close();
 	}
 	
 	// add(Plane)
@@ -89,8 +99,8 @@ public class Lump01 {
 	// Save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\01 - Planes.hex");
 		try {
-			File newFile=new File(path+"\\01 - Planes.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -130,7 +140,7 @@ public class Lump01 {
 			}
 			planeWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	
