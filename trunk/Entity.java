@@ -34,6 +34,55 @@ public class Entity {
 	
 	// METHODS
 	
+	// deleteAttribute(String)
+	// Deletes the specified attribute from the attributes list. If it wasn't found it does nothing.
+	public void deleteAttribute(String attribute) {
+		int index=0;
+		boolean found=false;
+		for(index=0;index<numAttributes;index++) {
+			try {
+				if(attributes[index].substring(0,attribute.length()+2).compareToIgnoreCase("\""+attribute+"\"")==0) {
+					found=true;
+					break; // If the attribute is found, break the loop since the appropriate index in in the variable "index"
+				}
+			} catch(StringIndexOutOfBoundsException e) { // for cases where the whole String is shorter than
+				;                                         // the name of the attribute we're looking for. Do nothing.
+			}
+		}
+		if (found) {
+			deleteAttribute(index);
+		}
+	}
+	
+	// deleteAttribute(int)
+	// Deletes the attribute at the specified index in the list
+	public void deleteAttribute(int index) {
+		String[] newList=new String[numAttributes-1];
+		for(int i=0;i<numAttributes-1;i++) {
+			if(i<index) {
+				newList[i]=attributes[i];
+			}
+			if(i>=index) {
+				newList[i]=attributes[i+1];
+			}
+		}
+		attributes=newList;
+		numAttributes--;
+	}
+	
+	// addAttribute(String)
+	// Simply adds the attribute to the list. Does not check for duplicates. Does
+	// not check validity.
+	public void addAttribute(String in) {
+		String[] newList=new String[numAttributes+1];
+		for(int i=0;i<numAttributes;i++) { // copy the current attribute list
+			newList[i]=attributes[i];
+		}
+		newList[numAttributes]=in;
+		attributes=newList;
+		numAttributes++;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// +setData(String)
@@ -101,7 +150,7 @@ public class Entity {
 					break;
 				}
 			} catch(StringIndexOutOfBoundsException e) { // for cases where the whole String is shorter than
-				;                                         // the name of the attribute we're looking for
+				;                                         // the name of the attribute we're looking for. Do nothing.
 			}
 		}
 		if (output.equals("")) {
@@ -158,5 +207,11 @@ public class Entity {
 			numAttributes++;
 			attributes=newAttributes;
 		}
+	}
+	
+	// getNumAttributes()
+	// Returns the number of attributes in the entity
+	public int getNumAttributes() {
+		return attributes.length;
 	}
 }

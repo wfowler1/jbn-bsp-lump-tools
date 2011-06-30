@@ -122,11 +122,14 @@ public class Lump10 {
 				newFile.createNewFile();
 			}
 			FileOutputStream pixelWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[(int)numLightPixels*3];
 			for(int i=0;i<numLightPixels;i++) {
 				// This is MUCH faster than using DataOutputStream
-				byte[] output={pixels[i].getR(), pixels[i].getG(), pixels[i].getB()};
-				pixelWriter.write(output);
+				data[(i*3)]=pixels[i].getR();
+				data[(i*3)+1]=pixels[i].getG();
+				data[(i*3)+2]=pixels[i].getB();
 			}
+			pixelWriter.write(data);
 			pixelWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

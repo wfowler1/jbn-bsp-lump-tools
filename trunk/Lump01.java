@@ -125,36 +125,36 @@ public class Lump01 {
 				newFile.createNewFile();
 			}
 			FileOutputStream planeWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numPlns*20];
 			for(int i=0;i<numPlns;i++) {
 				// This is MUCH FASTER than using a DataOutputStream
 				int out=Float.floatToRawIntBits(planes[i].getX());
-				byte[] output={(byte)((out >> 0) & 0xFF), (byte)((out >> 8) & 0xFF), (byte)((out >> 16) & 0xFF), (byte)((out >> 24) & 0xFF)};
-				planeWriter.write(output);
+				data[(i*20)+3]=(byte)((out >> 24) & 0xFF);
+				data[(i*20)+2]=(byte)((out >> 16) & 0xFF);
+				data[(i*20)+1]=(byte)((out >> 8) & 0xFF);
+				data[i*20]=(byte)((out >> 0) & 0xFF);
 				out=Float.floatToRawIntBits(planes[i].getY());
-				output[3]=(byte)((out >> 24) & 0xFF);
-				output[2]=(byte)((out >> 16) & 0xFF);
-				output[1]=(byte)((out >> 8) & 0xFF);
-				output[0]=(byte)((out >> 0) & 0xFF);
-				planeWriter.write(output);
+				data[(i*20)+7]=(byte)((out >> 24) & 0xFF);
+				data[(i*20)+6]=(byte)((out >> 16) & 0xFF);
+				data[(i*20)+5]=(byte)((out >> 8) & 0xFF);
+				data[(i*20)+4]=(byte)((out >> 0) & 0xFF);
 				out=Float.floatToRawIntBits(planes[i].getZ());
-				output[3]=(byte)((out >> 24) & 0xFF);
-				output[2]=(byte)((out >> 16) & 0xFF);
-				output[1]=(byte)((out >> 8) & 0xFF);
-				output[0]=(byte)((out >> 0) & 0xFF);
-				planeWriter.write(output);
+				data[(i*20)+11]=(byte)((out >> 24) & 0xFF);
+				data[(i*20)+10]=(byte)((out >> 16) & 0xFF);
+				data[(i*20)+9]=(byte)((out >> 8) & 0xFF);
+				data[(i*20)+8]=(byte)((out >> 0) & 0xFF);
 				out=Float.floatToRawIntBits(planes[i].getDist());
-				output[3]=(byte)((out >> 24) & 0xFF);
-				output[2]=(byte)((out >> 16) & 0xFF);
-				output[1]=(byte)((out >> 8) & 0xFF);
-				output[0]=(byte)((out >> 0) & 0xFF);
-				planeWriter.write(output);
+				data[(i*20)+15]=(byte)((out >> 24) & 0xFF);
+				data[(i*20)+14]=(byte)((out >> 16) & 0xFF);
+				data[(i*20)+13]=(byte)((out >> 8) & 0xFF);
+				data[(i*20)+12]=(byte)((out >> 0) & 0xFF);
 				out=planes[i].getType();
-				output[3]=(byte)((out >> 24) & 0xFF);
-				output[2]=(byte)((out >> 16) & 0xFF);
-				output[1]=(byte)((out >> 8) & 0xFF);
-				output[0]=(byte)((out >> 0) & 0xFF);
-				planeWriter.write(output);
+				data[(i*20)+19]=(byte)((out >> 24) & 0xFF);
+				data[(i*20)+18]=(byte)((out >> 16) & 0xFF);
+				data[(i*20)+17]=(byte)((out >> 8) & 0xFF);
+				data[(i*20)+16]=(byte)((out >> 0) & 0xFF);
 			}
+			planeWriter.write(data);
 			planeWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

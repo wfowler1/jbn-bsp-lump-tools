@@ -98,6 +98,8 @@ public class Lump07 {
 			}
 			FileOutputStream visWriter=new FileOutputStream(newFile);
 			for(int i=0;i<numPVS;i++) {
+				// These writes are probably faster than copying the entire lump into a single array then writing it.
+				// Since the data is already in smaller byte arrays, I just write those one at a time.
 				visWriter.write(PVSes[i]);
 			}
 			visWriter.close();

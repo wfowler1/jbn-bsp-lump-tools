@@ -99,11 +99,15 @@ public class Lump13 {
 				newFile.createNewFile();
 			}
 			FileOutputStream mBrushWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numMBrshs*4];
 			for(int i=0;i<numMBrshs;i++) {
 				// This is MUCH faster than using DataOutputStream
-				byte[] output={(byte)((markbrushes[i] >> 0) & 0xFF), (byte)((markbrushes[i] >> 8) & 0xFF), (byte)((markbrushes[i] >> 16) & 0xFF), (byte)((markbrushes[i] >> 24) & 0xFF)};
-				mBrushWriter.write(output);
+				data[(i*4)+3]=(byte)((markbrushes[i] >> 24) & 0xFF);
+				data[(i*4)+2]=(byte)((markbrushes[i] >> 16) & 0xFF);
+				data[(i*4)+1]=(byte)((markbrushes[i] >> 8) & 0xFF);
+				data[i*4]=(byte)((markbrushes[i] >> 0) & 0xFF);
 			}
+			mBrushWriter.write(data);
 			mBrushWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

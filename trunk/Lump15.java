@@ -111,22 +111,23 @@ public class Lump15 {
 				newFile.createNewFile();
 			}
 			FileOutputStream brushWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numBrshs*12];
 			for(int i=0;i<numBrshs;i++) {
 				// This is MUCH faster than using DataOutputStream. But you knew that already.
-				byte[] output={(byte)((brushes[i].getAttributes() >> 0) & 0xFF), (byte)((brushes[i].getAttributes() >> 8) & 0xFF),
-				               (byte)((brushes[i].getAttributes() >> 16) & 0xFF), (byte)((brushes[i].getAttributes() >> 24) & 0xFF)};
-				brushWriter.write(output);
-				output[3]=(byte)((brushes[i].getFirstSide() >> 24) & 0xFF);
-				output[2]=(byte)((brushes[i].getFirstSide() >> 16) & 0xFF);
-				output[1]=(byte)((brushes[i].getFirstSide() >> 8) & 0xFF);
-				output[0]=(byte)((brushes[i].getFirstSide() >> 0) & 0xFF);
-				brushWriter.write(output);
-				output[3]=(byte)((brushes[i].getNumSides() >> 24) & 0xFF);
-				output[2]=(byte)((brushes[i].getNumSides() >> 16) & 0xFF);
-				output[1]=(byte)((brushes[i].getNumSides() >> 8) & 0xFF);
-				output[0]=(byte)((brushes[i].getNumSides() >> 0) & 0xFF);
-				brushWriter.write(output);
+				data[(i*12)+3]=(byte)((brushes[i].getAttributes() >> 24) & 0xFF);
+				data[(i*12)+2]=(byte)((brushes[i].getAttributes() >> 16) & 0xFF);
+				data[(i*12)+1]=(byte)((brushes[i].getAttributes() >> 8) & 0xFF);
+				data[i*12]=(byte)((brushes[i].getAttributes() >> 0) & 0xFF);
+				data[(i*12)+7]=(byte)((brushes[i].getFirstSide() >> 24) & 0xFF);
+				data[(i*12)+6]=(byte)((brushes[i].getFirstSide() >> 16) & 0xFF);
+				data[(i*12)+5]=(byte)((brushes[i].getFirstSide() >> 8) & 0xFF);
+				data[(i*12)+4]=(byte)((brushes[i].getFirstSide() >> 0) & 0xFF);
+				data[(i*12)+11]=(byte)((brushes[i].getNumSides() >> 24) & 0xFF);
+				data[(i*12)+10]=(byte)((brushes[i].getNumSides() >> 16) & 0xFF);
+				data[(i*12)+9]=(byte)((brushes[i].getNumSides() >> 8) & 0xFF);
+				data[(i*12)+8]=(byte)((brushes[i].getNumSides() >> 0) & 0xFF);
 			}
+			brushWriter.write(data);
 			brushWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

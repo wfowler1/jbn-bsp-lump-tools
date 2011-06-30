@@ -101,11 +101,15 @@ public class Lump06 {
 				newFile.createNewFile();
 			}
 			FileOutputStream meshWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numMeshes*4];
 			for(int i=0;i<numMeshes;i++) {
 				// This is MUCH faster than using DataOutputStream
-				byte[] output={(byte)((meshes[i] >> 0) & 0xFF), (byte)((meshes[i] >> 8) & 0xFF), (byte)((meshes[i] >> 16) & 0xFF), (byte)((meshes[i] >> 24) & 0xFF)};
-				meshWriter.write(output);
+				data[(i*4)+3]=(byte)((meshes[i] >> 24) & 0xFF);
+				data[(i*4)+2]=(byte)((meshes[i] >> 16) & 0xFF);
+				data[(i*4)+1]=(byte)((meshes[i] >> 8) & 0xFF);
+				data[i*4]=(byte)((meshes[i] >> 0) & 0xFF);
 			}
+			meshWriter.write(data);
 			meshWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
