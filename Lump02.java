@@ -87,6 +87,8 @@ public class Lump02 {
 	
 	// Save(String)
 	// Saves the lump to the specified path.
+	// This method is fast enough for the textures lump, but generally speaking, handling
+	// file I/O with Strings is a bad idea.
 	public void save(String path) {
 		File newFile=new File(path+"\\02 - Textures.hex");
 		try {

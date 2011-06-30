@@ -101,11 +101,15 @@ public class Lump12 {
 				newFile.createNewFile();
 			}
 			FileOutputStream mSurfaceWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numMSurfs*4];
 			for(int i=0;i<numMSurfs;i++) {
 				// This is MUCH faster than using DataOutputStream
-				byte[] output={(byte)((marksurfaces[i] >> 0) & 0xFF), (byte)((marksurfaces[i] >> 8) & 0xFF), (byte)((marksurfaces[i] >> 16) & 0xFF), (byte)((marksurfaces[i] >> 24) & 0xFF)};
-				mSurfaceWriter.write(output);
+				data[(i*4)+3]=(byte)((marksurfaces[i] >> 24) & 0xFF);
+				data[(i*4)+2]=(byte)((marksurfaces[i] >> 16) & 0xFF);
+				data[(i*4)+1]=(byte)((marksurfaces[i] >> 8) & 0xFF);
+				data[i*4]=(byte)((marksurfaces[i] >> 0) & 0xFF);
 			}
+			mSurfaceWriter.write(data);
 			mSurfaceWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

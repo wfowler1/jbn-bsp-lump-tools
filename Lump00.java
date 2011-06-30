@@ -149,8 +149,74 @@ public class Lump00 {
 		entities=newlist;
 	}
 	
+	// +deleteAllOfType(String, String)
+	// Deletes all entities with attribute set to value
+	public void deleteAllWithAttribute(String attribute, String value) {
+		deleteEnts(findAllWithAttribute(attribute, value));
+	}
+	
+	// +deleteEnts(int[])
+	// Deletes the entities specified at all indices in the int[] array.
+	public void deleteEnts(int[] in) {
+		for(int i=0;i<in.length;i++) { // For each element in the array
+			delete(in[i]); // Delete the element
+			for(int j=i+1;j<in.length;j++) { // for each element that still needs to be deleted
+				if(in[i]<in[j]) { // if the element that still needs deleting has an index higher than what was just deleted
+					in[j]--; // Subtract one from that element's index to compensate for the changed list
+				}
+			}
+		}
+	}
+	
+	// +delete(int)
+	// Deletes the entity at the specified index
+	public void delete(int index) {
+		Entity[] newList=new Entity[numEnts-1];
+		for(int i=0;i<numEnts-1;i++) {
+			if(i<index) {
+				newList[i]=entities[i];
+			} else {
+				newList[i]=entities[i+1];
+			}
+		}
+		numEnts-=1;
+		entities=newList;
+	}
+	
+	// +findAllWithAttribute(String, String)
+	// Returns an array of indices of the entities with the specified attribute set to
+	// the specified value
+	public int[] findAllWithAttribute(String attribute, String value) {
+		int[] indices;
+		int num=0;
+		for(int i=0;i<numEnts;i++) {
+			try {
+				if(entities[i].getAttribute(attribute).equalsIgnoreCase(value)) {
+					num++;
+				}
+			} catch(AttributeNotFoundException e) {
+				;
+			}
+		}
+		indices=new int[num];
+		int current=0;
+		for(int i=0;i<numEnts && current<num;i++) {
+			try {
+				if(entities[i].getAttribute(attribute).equalsIgnoreCase(value)) {
+					indices[current]=i;
+					current++;
+				}
+			} catch(AttributeNotFoundException e) {
+				;
+			}
+		}
+		return indices;
+	}
+	
 	// Save(String)
 	// Saves the lump to the specified path.
+	// This method is fast enough for the entities lump, but generally speaking, handling
+	// file I/O with Strings is a bad idea.
 	public void save(String path) {
 		File newFile=new File(path+"\\00 - Entities.txt");
 		try {
@@ -166,7 +232,7 @@ public class Lump00 {
 				entityWriter.print(entities[i].getEntity()+"\n");
 			}
 			entityWriter.print((char)0x00+""); // The entities lump always ends with a 00 byte,
-			                                   // otherwise the game engine starts reading into
+			                                   // otherwise the game engine could start reading into
 														  // the next lump, looking for another entity. It's
 														  // kind of stupid that way, since lump sizes are
 														  // clearly defined in the BSP header.
@@ -190,17 +256,21 @@ public class Lump00 {
 	}
 	
 	// Returns the number of entities.
-	public int getNumElements() throws java.io.FileNotFoundException, java.io.IOException {
+	public int getNumElements() {
 		if (numEnts==0) {
 			System.out.println("Counting entities...");
-			FileInputStream fileReader = new FileInputStream(data);
 			int count=0;
-			for(int i=0;i<data.length();i++) {
-				if(fileReader.read() == '{') {
-					count++;
+			try {
+				FileInputStream fileReader = new FileInputStream(data);
+				for(int i=0;i<data.length();i++) {
+					if(fileReader.read() == '{') {
+						count++;
+					}
 				}
+				fileReader.close();
+			} catch(java.io.IOException e) {
+				System.out.println("Unable to read Entities.txt!");
 			}
-			fileReader.close();
 			return count;
 		} else {
 			return numEnts;
@@ -215,16 +285,5 @@ public class Lump00 {
 	// Returns a reference to the entities array
 	public Entity[] getEntities() {
 		return entities;
-	}
-	
-	// Returns the entire lump as a String
-	// Probably not the best way to do this, but I'm too lazy to find a better way
-	public String getLump() {
-		String out="";
-		for(int i=0;i<numEnts;i++) {
-			out+=entities[i].getEntity()+"\n";
-		}
-		out+=(char)0x00+"";
-		return out;
 	}
 }

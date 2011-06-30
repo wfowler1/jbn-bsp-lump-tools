@@ -116,17 +116,19 @@ public class Lump16 {
 				newFile.createNewFile();
 			}
 			FileOutputStream brushsideWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numBrshsds*8];
 			for(int i=0;i<numBrshsds;i++) {
 				// This is MUCH faster than using DataOutputStream.
-				byte[] output={(byte)((brushsides[i].getPlane() >> 0) & 0xFF), (byte)((brushsides[i].getPlane() >> 8) & 0xFF),
-				               (byte)((brushsides[i].getPlane() >> 16) & 0xFF), (byte)((brushsides[i].getPlane() >> 24) & 0xFF)};
-				brushsideWriter.write(output);
-				output[3]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
-				output[2]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
-				output[1]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
-				output[0]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
-				brushsideWriter.write(output);
+				data[(i*8)+3]=(byte)((brushsides[i].getPlane() >> 24) & 0xFF);
+				data[(i*8)+2]=(byte)((brushsides[i].getPlane() >> 16) & 0xFF);
+				data[(i*8)+1]=(byte)((brushsides[i].getPlane() >> 8) & 0xFF);
+				data[i*8]=(byte)((brushsides[i].getPlane() >> 0) & 0xFF);
+				data[(i*8)+7]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
+				data[(i*8)+6]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
+				data[(i*8)+5]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
+				data[(i*8)+4]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
 			}
+			brushsideWriter.write(data);
 			brushsideWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

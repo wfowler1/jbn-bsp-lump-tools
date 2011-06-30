@@ -11,6 +11,7 @@
 // Code in a lump separator?
 
 import java.util.Scanner;
+import java.util.Date;
 
 public class LumpTools {
 	public static void main(String[] args) throws java.io.FileNotFoundException, java.io.IOException {
@@ -18,20 +19,19 @@ public class LumpTools {
 
 		System.out.print("Path to lumps folder: ");
 		String filepath=keyboard.nextLine();
-		System.out.println(filepath.substring(0,filepath.length()-2));
 		
 		// All lump analysis and manipulation is handled through the
 		// NFBSP class. That way if something is wrong once, it's wrong
 		// every time and only needs to be fixed once.
 		NFBSP myBSP = new NFBSP(filepath);
 
-		System.out.print("Path to other lumps folder: ");
-		String otherfilepath=keyboard.nextLine();
+		//System.out.print("Path to other lumps folder: ");
+		//String otherfilepath=keyboard.nextLine();
 		
-		NFBSP otherBSP = new NFBSP(otherfilepath);
+		//NFBSP otherBSP = new NFBSP(otherfilepath);
 		
-		System.out.println("\nCombining BSP data...");
-		myBSP.combineBSP(otherBSP);
+		//System.out.println("\nCombining BSP data...");
+		//myBSP.combineBSP(otherBSP);
 		
 		myBSP.optimizeBSP();
 		

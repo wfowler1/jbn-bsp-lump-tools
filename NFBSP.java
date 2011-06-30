@@ -19,7 +19,6 @@
 
 // TODO:
 // create methods for searching and editing the lumps
-// Finish the lump separator/combiner
 
 // The strange thing about the NightFire (and the other) BSP files is the
 // virtual maze of data references. Leaves are born from Nodes created using
@@ -96,7 +95,7 @@ public class NFBSP {
 	public final int TEXMATRIX=17;
 	
 	// This allows us to get the name of the lump using its index.
-	public String[] LUMPNAMES = {"Entities", "Planes", "Textures", "Materials", "Vertices", "Normals", "Indices", "Visibility", "Nodes", "Faces",
+	public static final String[] LUMPNAMES = {"Entities", "Planes", "Textures", "Materials", "Vertices", "Normals", "Indices", "Visibility", "Nodes", "Faces",
 	                             "Lighting", "Leaves", "Mark Surfaces", "Mark Brushes", "Models", "Brushes", "Brushsides", "Texmatrix"};
 		
 	// This holds the size of the data structures for each lump. If
@@ -118,7 +117,7 @@ public class NFBSP {
 	public NFBSP(String in) {
 		try {
 			if (in.substring(in.length()-4).equalsIgnoreCase(".BSP")) {
-				filepath=in.substring(0,in.length()-4);
+				filepath=in.substring(0,in.length()-4)+"\\";
 				LS ls=new LS(in);
 				ls.separateLumps();
 			} else {
@@ -172,10 +171,6 @@ public class NFBSP {
 			
 		} catch(java.lang.StringIndexOutOfBoundsException e) {
 			System.out.println("Error: invalid path");
-		} catch(java.io.FileNotFoundException e) {
-			System.out.println("Error: lumps not found");
-		} catch(java.io.IOException e) {
-			System.out.println("Error: Funny lump size");
 		}
 	}
 	
@@ -201,8 +196,11 @@ public class NFBSP {
 		// One lump at a time, in order of lumps. If a lump cannot be
 		// optimized, and explanation is provided.
 		
-		// Every entitiy is unique and cannot be optimized.
-		System.out.println("\nOptimizing planes...");
+		System.out.println("\nOptimizing entities...");
+		optimizeEntities(); // Every entitiy is unique and cannot be optimized. However, some
+		                    // attributes are superfluous ("angles" "0 0 0") and some are
+								  // only used by Gearcraft ("sequencename", oven compile options)
+		System.out.println("Optimizing planes...");
 		optimizePlanes();
 		System.out.println("Optimizing textures...");
 		optimizeTextures(); // A compiler will never allow duplicates in this one,
@@ -232,6 +230,45 @@ public class NFBSP {
 		r.gc(); // Collect garbage, there may be a lot of it
 	}
 	
+	// optimizeEntities()
+	// Eliminates junk attributes like "angles" "0 0 0" and those only used by the map
+	// editor, such as sequencename and oven compile options.
+	public void optimizeEntities() {
+		int numEnts=myL0.getNumElements();
+		for(int i=0;i<numEnts;i++) {
+			try { // Each one of these must be within its own try/catch block. Otherwise, if the first attribute doesn't exist, it won't check for any of the other ones.
+				if(myL0.getEntity(i).getAttribute("origin").equals("0 0 0")) {
+					myL0.getEntity(i).deleteAttribute("origin");
+				}
+			} catch(AttributeNotFoundException e) { // The entitiy has no origin attribute
+				;
+			}
+			try {
+				if(myL0.getEntity(i).getAttribute("angles").equals("0 0 0")) {
+					myL0.getEntity(i).deleteAttribute("angles");
+				}
+			} catch(AttributeNotFoundException e) { // The entitiy has no angles attribute
+				;
+			}
+			try {
+				if(myL0.getEntity(i).getAttribute("classname").equals("multi_manager")) {
+					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map, or defined as being anywhere really.
+				}
+			} catch(AttributeNotFoundException e) {
+				;
+			}
+			try {
+				if(myL0.getEntity(i).getAttribute("classname").equals("env_fade")) {
+					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map, or defined as being anywhere really.
+				}
+			} catch(AttributeNotFoundException e) {
+				;
+			}
+			myL0.getEntity(i).deleteAttribute("sequencename");
+		}
+		// myL0.deleteAllWithAttribute("classname", "useless");
+	}
+	
 	// optimizePlanes()
 	// Finds duplicate planes, and eliminates them and attempts to recycle
 	// them instead. This is complicated by the fact that planes are referenced
@@ -239,8 +276,8 @@ public class NFBSP {
 	// for that same reason planes are probably ripe for optimization.
 	// Iterators:
 	// i is the current plane
-	// j is the plane the current plane is being compared to
-	// k is the current index into another lump to check if it references the deleted plane (which "other" lump differs in the loops)
+	//  j is the plane the current plane is being compared to
+	//   k is the current index into another lump to check if it references the deleted plane (which "other" lump differs in the loops)
 	public void optimizePlanes() {
 		int numDeldPlanes=0;
 		int numPlns=myL1.getNumElements();
@@ -290,8 +327,8 @@ public class NFBSP {
 	// easy to do since only one lump references this one.
 	// Iterators:
 	// i: index of the first texture
-	// j: index of the second texture
-	// k: when textures i and j are the same, this is the current face
+	//  j: index of the second texture
+	//   k: when textures i and j are the same, this is the current face
 	public void optimizeTextures() {
 		int numDeldTxts=0;
 		int numTxts=myL2.getNumElements();
@@ -318,8 +355,8 @@ public class NFBSP {
 	// Finds duplicate materials and fixes references to them in faces.
 	// Iterators:
 	// i: index of the first material
-	// j: index of the second material
-	// k: when materials i and j are the same, this is the current face
+	//  j: index of the second material
+	//   k: when materials i and j are the same, this is the current face
 	public void optimizeMaterials() {
 		int numDeldMats=0;
 		int numMats=myL3.getNumElements();
@@ -352,13 +389,12 @@ public class NFBSP {
 	// equivalent. If they are, delete all data from the duplicate set and reference the
 	// first instance twice.
 	// I don't see why map compilers don't automatically do this. There's a lot of duplicated
-	// mesh bunches that could be optimized out, in both officially and custom compiled maps.
+	// mesh bunches that could be optimized out, in both official and custom compiled maps.
 	// Only reason I can think of is this makes it unreliable, but I can't imagine how.
 	//
 	// This is already one of the most complicated and messy things I've ever coded, but it
 	// actually WORKS. This process shrunk the meshes lump of airfield01 from 502,524 bytes
-	// to 708 bytes, which is 709.78 times smaller. Upon loading the map in the game engine
-	// I didn't see any apparent problems. Also...
+	// to 708 bytes. Upon loading the map in the game engine I didn't see any apparent problems. Also...
 	// TODO: THIS PROCESS IS ACTUALLY IMCOMPLETE. It doesn't cover cases where one face has
 	// for example three meshes (0, 1, 2) and another one has six (0, 1, 2, 0, 2, 3). The
 	// 0, 1, 2 can be recycled and used for both cases. I'm not sure how to finish the algorithm
@@ -371,8 +407,9 @@ public class NFBSP {
 	//
 	// Iterators:
 	// i: Current face
-	// j: Face being compared to current face
-	// k: Current mesh in a bunch to check against the same mesh in another bunch
+	//  j: Face being compared to current face
+	//   k: Current mesh in a bunch to check against the same mesh in another bunch
+	//   l: When a bunch of meshes are deleted, each face must be checked to make sure its references are fixed. This is the current face for fixing references.
 	public void optimizeMeshes() {
 		int numFaces=myL9.getNumElements();
 		int numDeldMeshs=0;
@@ -402,18 +439,28 @@ public class NFBSP {
 								}
 							}
 						} // Face readjuster
-					} // If it was a dulpicate
-				} // If they were the same size
+					} // If they were the same
+				} // If mesh bunches were the same size
 			} // For each subsequent face
 		} // For each face
-		// Phase 2: TODO
-		System.out.println(numDeldMeshs+" duplicate mesh bunches deleted.");
+		
+		// Phase 2: Find mesh bunches which are pieces of larger bunches and take advantage of that.
+		// Really, this phase is for squeezing a couple hundred more bytes out of the lump. Phase 1
+		// is good enough to shrink a 500KB file to a file maybe 1KB, this just brings that 1KK down
+		// to maybe 200 bytes or less.
+		
+		// First, I need to figure out how many unique mesh bunches there are. The references in faces
+		// have already been saved. Find out how many of those references are unique.
+		
+		// TODO: Keep thinking about this one, it's a tough cookie.
+		
+		System.out.println(numDeldMeshs+" duplicate meshes deleted.");
 	}
 	
 	// alternativeOptimizeMeshes()
 	// This is an alternative method to optimizing meshes. It's a very lazy way to
 	// do this and could be very error-prone in certain cases, but from what I've
-	// seen this should work for every compiled map.
+	// seen this should work for every compiled map and it's extremely fast.
 	// This assumes every single mesh bunch follows the pattern:
 	// (0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, etc.)
 	// which from what I've seen, they all do, or some smaller subset of it, like:
@@ -425,23 +472,26 @@ public class NFBSP {
 	//
 	// After testing this seems to work fine, even on large maps with complex geometries.
 	// It's a quick and dirty method but it's a sloppy lump to work on. I'd be more comfortable
-	// using the slow, safe method if I finished it.
+	// using the slow, safe method. This method makes a lot of assumptions about the data
+	// that I'd rather not make, even though all those assumptions usually seem to be correct.
+	// Depending on data this heavily is a bad idea, if one little thing is different then
+	// lots of glitches may occur in game.
 	public void alternativeOptimizeMeshes() {
-		int highestValue=2; // The highest number will always be at least 2
+		int highestValue=2; // Assumption: The highest number will always be at least 2
 		for(int i=0;i<myL6.getNumElements()/3;i++) { // for each set of three ints in the lump
 			if(myL6.getMesh((i*3)+2)>highestValue) { // Go through each third one
 				highestValue=myL6.getMesh((i*3)+2); // and find and record the highest value
 			}
 		}
-		int[] newLump=new int[(highestValue-1)*3]; // If the highest value is N, there will be N-1 sets of 3 ints.
+		int[] newLump=new int[(highestValue-1)*3]; // Assumption: If the highest value is N, there will be N-1 sets of 3 ints.
 		for(int i=0;i<newLump.length/3;i++) { // For each set of three ints
-			newLump[i*3]=0; // The first value in each set of three is always 0
-			newLump[(i*3)+1]=i+1; // The second value always reflects the current set of three (starting at set 1, not 0)
-			newLump[(i*3)+2]=i+2; // The third value always reflects the current set of three, plus one
+			newLump[i*3]=0; // Assumption: The first value in each set of three is always 0
+			newLump[(i*3)+1]=i+1; // Assumption: The second value always reflects the current set of three (starting at set 1, not 0)
+			newLump[(i*3)+2]=i+2; // Assumption: The third value always reflects the current set of three, plus one
 		}
 		myL6.setMeshes(newLump);
 		for(int i=0;i<myL9.getNumElements();i++) { // For each face
-			myL9.getFace(i).setMeshs(0); // The new data will always be at index 0, and each face will reference as much of it as it needs.
+			myL9.getFace(i).setMeshs(0); // Assumption: The data for every face will always be at index 0 and will always be correct, and each face will reference as much of it as it needs.
 		}
 		System.out.println("Meshes optimized to "+newLump.length*4+" bytes.");
 	}
@@ -725,12 +775,11 @@ public class NFBSP {
 	
 	// saveLumps(String)
 	// Tells the lumps to save their data into the specified path.
-	// TODO: Speed this up a bit. I've already reaped some benefits from
-	// not using DataOutputStream but it's still quite slow. I'd like to
-	// call this method often. Idea: Use an output buffer of maybe 4096bytes.
 	public void saveLumps(String path) {
-		Date pre=new Date();
 		if(modified || true) { // TODO: remove "true"
+			if(!new File(path).exists()) {
+				new File(path).mkdirs();
+			}
 			System.out.println("Saving entities...");
 			myL0.save(path);
 			System.out.println("Saving planes...");
@@ -768,13 +817,16 @@ public class NFBSP {
 			System.out.println("Saving texture matrix...");
 			myL17.save(path);
 		}
-		Date post=new Date();
-		System.out.println(post.getTime()-pre.getTime()+" milliseconds elapsed");
 	}
 	
-	// separateLumps(String)
-	// Separates the lumps of the specified BSP
-	public static void separateLumps(String path) {
+	// +decompile()
+	// Attempts to convert the BSP file back into a .MAP file.
+	// This is tough for two reasons:
+	// 1. MAP files are pure ASCII, and Strings are tough to deal with
+	// 2. Many times a leaf will reference several brushes at a time, and I don't
+	//    know why or how to deal with it.
+	public static void decompile() {
+		// Begin by converting all brushes into structures defined by their sides
 		
 	}
 	

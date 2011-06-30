@@ -112,24 +112,26 @@ public class Lump04 {
 				newFile.createNewFile();
 			}
 			FileOutputStream vertexWriter=new FileOutputStream(newFile);
+			byte[] data=new byte[numVerts*12];
 			for(int i=0;i<numVerts;i++) {
 				// This is MUCH faster than using DataOutputStream
 				int out=Float.floatToRawIntBits(vertices[i].getX());
-				byte[] output={(byte)((out >> 0) & 0xFF), (byte)((out >> 8) & 0xFF), (byte)((out >> 16) & 0xFF), (byte)((out >> 24) & 0xFF)};
-				vertexWriter.write(output);
+				data[(i*12)+3]=(byte)((out >> 24) & 0xFF);
+				data[(i*12)+2]=(byte)((out >> 16) & 0xFF);
+				data[(i*12)+1]=(byte)((out >> 8) & 0xFF);
+				data[i*12]=(byte)((out >> 0) & 0xFF);
 				out=Float.floatToRawIntBits(vertices[i].getY());
-				output[3]=(byte)((out >> 24) & 0xFF);
-				output[2]=(byte)((out >> 16) & 0xFF);
-				output[1]=(byte)((out >> 8) & 0xFF);
-				output[0]=(byte)((out >> 0) & 0xFF);
-				vertexWriter.write(output);
+				data[(i*12)+7]=(byte)((out >> 24) & 0xFF);
+				data[(i*12)+6]=(byte)((out >> 16) & 0xFF);
+				data[(i*12)+5]=(byte)((out >> 8) & 0xFF);
+				data[(i*12)+4]=(byte)((out >> 0) & 0xFF);
 				out=Float.floatToRawIntBits(vertices[i].getZ());
-				output[3]=(byte)((out >> 24) & 0xFF);
-				output[2]=(byte)((out >> 16) & 0xFF);
-				output[1]=(byte)((out >> 8) & 0xFF);
-				output[0]=(byte)((out >> 0) & 0xFF);
-				vertexWriter.write(output);
+				data[(i*12)+11]=(byte)((out >> 24) & 0xFF);
+				data[(i*12)+10]=(byte)((out >> 16) & 0xFF);
+				data[(i*12)+9]=(byte)((out >> 8) & 0xFF);
+				data[(i*12)+8]=(byte)((out >> 0) & 0xFF);
 			}
+			vertexWriter.write(data);
 			vertexWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
