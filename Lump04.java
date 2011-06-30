@@ -22,26 +22,38 @@ public class Lump04 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump04(String in) throws java.io.FileNotFoundException {
+	public Lump04(String in) {
 		data=new File(in);
-		numVerts=getNumElements();
-		vertices=new Vertex[numVerts];
-		populateVertexList();
+		try {
+			numVerts=getNumElements();
+			vertices=new Vertex[numVerts];
+			populateVertexList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump04(File in) throws java.io.FileNotFoundException {
+	public Lump04(File in) {
 		data=in;
-		numVerts=getNumElements();
-		vertices=new Vertex[numVerts];
-		populateVertexList();
+		try {
+			numVerts=getNumElements();
+			vertices=new Vertex[numVerts];
+			populateVertexList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
 	
 	// +populateVertexList()
 	// Parses all data into an array of Vertex.
-	public void populateVertexList() throws java.io.FileNotFoundException {
+	public void populateVertexList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
 		try {
 			for(int i=0;i<numVerts;i++) {
@@ -49,12 +61,10 @@ public class Lump04 {
 				reader.read(datain);
 				vertices[i]=new Vertex(datain);
 			}
-			reader.close();
 		} catch(InvalidVertexException e) {
 			System.out.println("WARNING: Funny lump size in "+data+", ignoring last vertex.");
-		} catch(java.io.IOException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last vertex.");
 		}
+		reader.close();
 	}
 	
 	// add(Vertex)
@@ -93,8 +103,8 @@ public class Lump04 {
 	// Save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\04 - Vertices.hex");
 		try {
-			File newFile=new File(path+"\\04 - Vertices.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -122,7 +132,7 @@ public class Lump04 {
 			}
 			vertexWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	

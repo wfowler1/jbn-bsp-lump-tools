@@ -8,7 +8,6 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump12 {
 
@@ -21,19 +20,31 @@ public class Lump12 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump12(String in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump12(String in) {
 		data=new File(in);
-		numMSurfs=getNumElements();
-		marksurfaces=new int[numMSurfs];
-		populateMSurfList();
+		try {
+			numMSurfs=getNumElements();
+			marksurfaces=new int[numMSurfs];
+			populateMSurfList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump12(File in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump12(File in) {
 		data=in;
-		numMSurfs=getNumElements();
-		marksurfaces=new int[numMSurfs];
-		populateMSurfList();
+		try {
+			numMSurfs=getNumElements();
+			marksurfaces=new int[numMSurfs];
+			populateMSurfList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
@@ -63,7 +74,7 @@ public class Lump12 {
 	}	
 	
 	// +add(Lump12)
-	// adds every pixel from another lump12 object.
+	// adds every item from another lump12 object.
 	public void add(Lump12 in) {
 		int[] newList=new int[numMSurfs+in.getNumElements()];
 		File myLump09=new File(data.getParent()+"//09 - Faces.hex");
@@ -79,10 +90,10 @@ public class Lump12 {
 	}
 	
 	// save(String)
-	// Saves the data to the specified path as the lump.
+	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\12 - Mark Surfaces.hex");
 		try {
-			File newFile=new File(path+"\\12 - Mark Surfaces.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -97,8 +108,14 @@ public class Lump12 {
 			}
 			mSurfaceWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
+	}
+	
+	// save()
+	// Saves the lump, overwriting the one data was read from
+	public void save() {
+		save(data.getParent());
 	}
 
 	

@@ -3,10 +3,9 @@
 // This class handles and maintains an array of entities
 
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.*;
+import java.util.Scanner;
 
 public class Lump00 {
 	
@@ -19,19 +18,31 @@ public class Lump00 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump00(String in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump00(String in) {
 		data=new File(in);
-		numEnts=getNumElements();
-		entities = new Entity[numEnts];
-		populateEntityList();
+		try {
+			numEnts=getNumElements();
+			entities = new Entity[numEnts];
+			populateEntityList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump00(File in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump00(File in) {
 		data=in;
-		numEnts=getNumElements();
-		entities = new Entity[numEnts];
-		populateEntityList();
+		try {
+			numEnts=getNumElements();
+			entities = new Entity[numEnts];
+			populateEntityList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
@@ -71,13 +82,12 @@ public class Lump00 {
 	
 	// +add(String)
 	// Parses the string and adds it to the entity list.
-	/* input Strings should be of the format:
-	   {0x0A
-	   "attribute" "value"0x0A
-	   "anotherattribute" "more values"0x0A
-	   etc.0x0A
-	   }
-	*/
+	// input Strings should be of the format:
+	//   {0x0A
+	//   "attribute" "value"0x0A
+	//   "anotherattribute" "more values"0x0A
+	//   etc.0x0A
+	//   }
 	public void add(String in) {
 		Scanner reader=new Scanner(in);
 		reader.useDelimiter("");
@@ -122,11 +132,6 @@ public class Lump00 {
 		for(int i=0;i<numEnts;i++) { // copy the entities from this lump into a new array
 			newlist[i]=entities[i];
 		}
-		// TODO: Find a better way to find this number than accessing the file, since the lump
-		// could have changed in RAM by this program. I'd rather not have to save after every
-		// single thing I do.
-		// On the other hand, as long as NONE of the lump files are saved then using the files
-		// will work okay, since all work is done in RAM before it is saved.
 		File myLump14=new File(data.getParent()+"\\14 - Models.hex");
 		int num14objs=(int)myLump14.length()/56;
 		for(int i=0;i<in.getEntities().length;i++) {
@@ -147,8 +152,8 @@ public class Lump00 {
 	// Save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
+		File newFile=new File(path+"\\00 - Entities.txt");
 		try {
-			File newFile=new File(path+"\\00 - Entities.txt");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -167,12 +172,12 @@ public class Lump00 {
 														  // clearly defined in the BSP header.
 			entityWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	
-	// Save()
-	// Saves the lump, overwriting the original.
+	// save()
+	// Saves the lump, overwriting the one data was read from
 	public void save() {
 		save(data.getParent());
 	}

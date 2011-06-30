@@ -6,7 +6,6 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump06 {
 	
@@ -19,19 +18,31 @@ public class Lump06 {
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump06(String in) throws java.io.IOException, java.io.IOException {
+	public Lump06(String in) {
 		data=new File(in);
-		numMeshes=getNumElements();
-		meshes=new int[numMeshes];
-		populateMeshList();
+		try {
+			numMeshes=getNumElements();
+			meshes=new int[numMeshes];
+			populateMeshList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump06(File in) throws java.io.IOException, java.io.IOException {
+	public Lump06(File in) {
 		data=in;
-		numMeshes=getNumElements();
-		meshes=new int[numMeshes];
-		populateMeshList();
+		try {
+			numMeshes=getNumElements();
+			meshes=new int[numMeshes];
+			populateMeshList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
@@ -80,10 +91,9 @@ public class Lump06 {
 	
 	// Save(String)
 	// Saves the lump to the specified path.
-	// TODO: FIND A FASTER METHOD FOR DOING THIS, DataOutputStream is SLOW
 	public void save(String path) {
+		File newFile=new File(path+"\\06 - Indices.hex");
 		try {
-			File newFile=new File(path+"\\06 - Indices.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
@@ -98,7 +108,7 @@ public class Lump06 {
 			}
 			meshWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
 	

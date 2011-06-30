@@ -1,14 +1,14 @@
 // Lump10 class
 
-// This class simply holds an array of three-byte RGB pixels.
+// This class holds an array of pixels of the Pixel class. Really it's an array
+// of byte3.
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.util.*;
 
 public class Lump10 {
-
+	
 	// INITIAL DATA DECLARATION AND DEFINITION OF CONSTANTS
 	
 	public final int R=0;
@@ -17,61 +17,60 @@ public class Lump10 {
 	
 	private File data;
 	private int numLightPixels=0;
-	// Java is RETARDED when it comes to unsigned numbers. I'm not putting
-	// forth the effort into handling these things as unsigned, someone
-	// can just port this whole program into C++ instead. Please do.
-	private byte[][] pixels; // creates an array of byte[3] arrays
-	// TODO: since I bothered giving vertices their own class for nothing but
-	// float3s, I should probably do the same for this.
+	private Pixel[] pixels;
 	
 	// CONSTRUCTORS
 	
 	// This one accepts the lump path as a String
-	public Lump10(String in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump10(String in) {
 		data=new File(in);
-		numLightPixels=getNumElements();
-		pixels=new byte[numLightPixels][3];
-		populatePixelList();
+		try {
+			numLightPixels=getNumElements();
+			pixels=new Pixel[numLightPixels];
+			populatePixelList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// This one accepts the input file path as a File
-	public Lump10(File in) throws java.io.FileNotFoundException, java.io.IOException {
+	public Lump10(File in) {
 		data=in;
-		numLightPixels=getNumElements();
-		pixels=new byte[numLightPixels][3];
-		populatePixelList();
+		try {
+			numLightPixels=getNumElements();
+			pixels=new Pixel[numLightPixels];
+			populatePixelList();
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+		}
 	}
 	
 	// METHODS
 	
-	// -populatePixelList()
-	// Populates the array with the pixels
-	private void populatePixelList() throws java.io.FileNotFoundException, java.io.IOException {
+	// +populatePixelList()
+	// Parses all data into an array of Pixel.
+	public void populatePixelList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		for(int i=0;i<numLightPixels;i++) {
-			reader.read(pixels[i]);
+		try {
+			for(int i=0;i<numLightPixels;i++) {
+				byte[] datain=new byte[3];
+				reader.read(datain);
+				pixels[i]=new Pixel(datain);
+			}
+		} catch(InvalidPixelException e) {
+			System.out.println("WARNING: Funny lump size in "+data+", ignoring last pixel.");
 		}
 		reader.close();
 	}
 	
-	// +add(byte, byte, byte)
-	// Adds a pixel as three bytes
-	public void add(byte inR, byte inG, byte inB) {
-		byte[][] newList=new byte[numLightPixels+1][3];
-		for(int i=0;i<numLightPixels;i++) {
-			newList[i]=pixels[i];
-		}
-		newList[numLightPixels][R]=inR;
-		newList[numLightPixels][G]=inG;
-		newList[numLightPixels][B]=inB;
-		numLightPixels++;
-		pixels=newList;
-	}
-	
-	// +add(byte[])
-	// Adds a pixel as an array of bytes, there should be three
-	public void add(byte[] in) {
-		byte[][] newList=new byte[numLightPixels+1][3];
+	// add(Pixel)
+	// Adds a pixel which is already a Pixel object. Easiest to do.
+	public void add(Pixel in) {
+		Pixel[] newList=new Pixel[numLightPixels+1];
 		for(int i=0;i<numLightPixels;i++) {
 			newList[i]=pixels[i];
 		}
@@ -80,41 +79,66 @@ public class Lump10 {
 		pixels=newList;
 	}
 	
-	// +add(Lump10)
-	// adds every pixel from another lump10 object.
+	// add (byte byte byte)
+	// Adds a pixel defined by data alone. Still easy.
+	public void add(byte inR, byte inG, byte inB) {
+		add(new Pixel(inR, inG, inB));
+	}
+	
+	// add(Lump10)
+	// Adds every pixel in another Lump10 object. This is actually much easier
+	// than most other lumps since this one doesn't reference another lump.
 	public void add(Lump10 in) {
-		byte[][] newList=new byte[numLightPixels+in.getNumElements()][3];
+		Pixel[] newList=new Pixel[numLightPixels+in.getNumElements()];
 		for(int i=0;i<numLightPixels;i++) {
 			newList[i]=pixels[i];
 		}
-		for(int i=0;i<in.getNumElements(); i++) {
+		for(int i=0;i<in.getNumElements();i++) {
 			newList[i+numLightPixels]=in.getPixel(i);
 		}
 		numLightPixels=numLightPixels+in.getNumElements();
 		pixels=newList;
 	}
 	
-	// save(String)
-	// Saves the data to the specified path as the lump.
+	// delAllPixels()
+	// Replaces the Pixel array with an empty one, effectively deleting the list
+	public void delAllPixels() {
+		Pixel[] newList=new Pixel[0];
+		pixels=newList;
+		numLightPixels=0;
+	}
+	
+	// Save(String)
+	// Saves the lump to the specified path.
+	// TODO: change this to use a buffer of maybe 1KB or something, it is faster to write
+	// a few large chunks to the hard drive than a ton of small chunks.
 	public void save(String path) {
+		File newFile=new File(path+"\\10 - Lighting.hex");
 		try {
-			File newFile=new File(path+"\\10 - Lighting.hex");
 			if(!newFile.exists()) {
 				newFile.createNewFile();
 			} else {
 				newFile.delete();
 				newFile.createNewFile();
 			}
-			FileOutputStream lightWriter=new FileOutputStream(newFile);
+			FileOutputStream pixelWriter=new FileOutputStream(newFile);
 			for(int i=0;i<numLightPixels;i++) {
-				lightWriter.write(pixels[i]);
+				// This is MUCH faster than using DataOutputStream
+				byte[] output={pixels[i].getR(), pixels[i].getG(), pixels[i].getB()};
+				pixelWriter.write(output);
 			}
-			lightWriter.close();
+			pixelWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
-
+	
+	// save()
+	// Saves the lump, overwriting the one data was read from
+	public void save() {
+		save(data.getParent());
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
@@ -122,7 +146,7 @@ public class Lump10 {
 		return data.length();
 	}
 	
-	// Returns the number of RGB pixels.
+	// Returns the number of pixels.
 	public int getNumElements() {
 		if(numLightPixels==0) {
 			return (int)data.length()/3;
@@ -131,11 +155,11 @@ public class Lump10 {
 		}
 	}
 	
-	public byte[] getPixel(int i) {
+	public Pixel getPixel(int i) {
 		return pixels[i];
 	}
 	
-	public void setPixel(int i, byte[] in) {
-		pixels[i]=in;
+	public Pixel[] getPixels() {
+		return pixels;
 	}
 }
