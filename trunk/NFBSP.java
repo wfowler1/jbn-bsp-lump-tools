@@ -1024,9 +1024,6 @@ public class NFBSP {
 		Lump00 mapFile=new Lump00(myL0);
 		// Then I need to go through each entity and see if it's brush-based.
 		// Worldspawn is brush-based as well as any entity with model *#.
-		int numVertFaces=0;
-		int numPlaneFaces=0;
-		int numOriginBrushes=0;
 		for(int i=0;i<mapFile.getNumElements();i++) { // For each entity
 			int currentModel=-1;
 			if(mapFile.getEntity(i).isBrushBased()) {
@@ -1077,13 +1074,11 @@ public class NFBSP {
 											plane[0]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh));
 											plane[1]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh+1));
 											plane[2]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh+2));
-											numVertFaces++;
 											numVertFacesThisBrsh++;
 											vertFaces[l]=true;
 											vertFaceIndex=l;
 										} else { // Fallback to planar decompilation. Since there are no explicitly defined points anymore,
 											      // we must find them ourselves using the A, B, C and D values.
-											numPlaneFaces++;
 											numPlaneFacesThisBrsh++;
 											// Figure out if the plane is parallel to two of the axes. If so it can be reproduced easily
 											if(currentPlane.getB()==0 && currentPlane.getC()==0) { // parallel to plane YZ
@@ -1192,6 +1187,7 @@ public class NFBSP {
 								// 1. They are always convex, therefore a point on one of the faces will be on the negative side of every other plane in the brush
 								// 2. The positive side of every plane in a brush must face outwards, and the positive side is the side with the face
 								// Limitation: There must be at least one face which was defined by vertices.
+								// TODO: This doesn't fucking work. What is wrong? Probably the point used
 								/*if(numVertFacesThisBrsh>0) { // If there was a face defined by vertices, if not just move on
 									Vertex[] points=brushSides[vertFaceIndex].getPlane();
 									// Find the point in the middle of these three points. It'll be on the plane.
@@ -1239,7 +1235,6 @@ public class NFBSP {
 				if(origin[0]!=0 || origin[1]!=0 || origin[2]!=0) { // If this brush uses the "origin" attribute
 					Entity newOriginBrush=new Entity("{ // Brush "+numBrshs);
 					numBrshs++;
-					numOriginBrushes++;
 					Vertex[][] planes=new Vertex[6][3]; // Six planes for a cube brush, three vertices for each plane
 					float[][] textureS=new float[6][3];
 					float[][] textureT=new float[6][3];
@@ -1297,7 +1292,6 @@ public class NFBSP {
 				mapFile.getEntity(i).deleteAttribute("origin");
 			}
 		}
-		System.out.println(numVertFaces+" faces constructed from vertices\n"+numPlaneFaces+" faces derived from planes\n"+numOriginBrushes+" origin brushes created");
 		System.out.println("Saving .map...");
 		mapFile.save(path);
 		r.gc(); // Collect garbage, there will be a lot of it
