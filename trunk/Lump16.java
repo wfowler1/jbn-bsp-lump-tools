@@ -79,8 +79,8 @@ public class Lump16 {
 	
 	// add (int int)
 	// Adds a brush side defined by data alone. Still easy.
-	public void add(int inPlane, int inFace) {
-		add(new BrushSide(inPlane, inFace));
+	public void add(int inFace, int inPlane) {
+		add(new BrushSide(inFace, inPlane));
 	}
 	
 	// add(Lump16)
@@ -97,8 +97,8 @@ public class Lump16 {
 		
 		for(int i=0;i<in.getNumElements();i++) {
 			newList[i+numBrshsds]=in.getBrushSide(i);
-			newList[i+numBrshsds].setPlane(newList[i+numBrshsds].getPlane()+sizeL01);
 			newList[i+numBrshsds].setFace(newList[i+numBrshsds].getFace()+sizeL09);
+			newList[i+numBrshsds].setPlane(newList[i+numBrshsds].getPlane()+sizeL01);
 		}
 		numBrshsds=numBrshsds+in.getNumElements();
 		brushsides=newList;
@@ -119,14 +119,14 @@ public class Lump16 {
 			byte[] data=new byte[numBrshsds*8];
 			for(int i=0;i<numBrshsds;i++) {
 				// This is MUCH faster than using DataOutputStream.
-				data[(i*8)+3]=(byte)((brushsides[i].getPlane() >> 24) & 0xFF);
-				data[(i*8)+2]=(byte)((brushsides[i].getPlane() >> 16) & 0xFF);
-				data[(i*8)+1]=(byte)((brushsides[i].getPlane() >> 8) & 0xFF);
-				data[i*8]=(byte)((brushsides[i].getPlane() >> 0) & 0xFF);
-				data[(i*8)+7]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
-				data[(i*8)+6]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
-				data[(i*8)+5]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
-				data[(i*8)+4]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
+				data[(i*8)+3]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
+				data[(i*8)+2]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
+				data[(i*8)+1]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
+				data[i*8]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
+				data[(i*8)+7]=(byte)((brushsides[i].getPlane() >> 24) & 0xFF);
+				data[(i*8)+6]=(byte)((brushsides[i].getPlane() >> 16) & 0xFF);
+				data[(i*8)+5]=(byte)((brushsides[i].getPlane() >> 8) & 0xFF);
+				data[(i*8)+4]=(byte)((brushsides[i].getPlane() >> 0) & 0xFF);
 			}
 			brushsideWriter.write(data);
 			brushsideWriter.close();

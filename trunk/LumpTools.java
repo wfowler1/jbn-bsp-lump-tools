@@ -33,12 +33,22 @@ public class LumpTools {
 		//System.out.println("\nCombining BSP data...");
 		//myBSP.combineBSP(otherBSP);
 		
-		myBSP.optimizeBSP();
+		// Force planar decompilation
+		/*for(int i=0;i<myBSP.getLump09().getNumElements();i++) {
+			myBSP.getLump09().getFace(i).setVert(0);
+			myBSP.getLump09().getFace(i).setNumVerts(0);
+			myBSP.getLump09().getFace(i).setMeshs(0);
+			myBSP.getLump09().getFace(i).setNumMeshs(0);
+		}*/
 		
-		System.out.print("Path to save lumps to: ");
-		String savefolder=keyboard.nextLine();
-		myBSP.saveLumps(savefolder);
+		System.out.print("Path to save decompiled map to: ");
+		String decompfolder=keyboard.nextLine();
+		myBSP.decompile(decompfolder);
 		
-		NFBSP newBSP=new NFBSP(savefolder);
+		//System.out.print("Path to save lumps to: ");
+		//String savefolder=keyboard.nextLine();
+		//myBSP.saveLumps(savefolder);
+		
+		//NFBSP newBSP=new NFBSP(savefolder);
 	}
 }

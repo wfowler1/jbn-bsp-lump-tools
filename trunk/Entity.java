@@ -71,8 +71,8 @@ public class Entity {
 	}
 	
 	// addAttribute(String)
-	// Simply adds the attribute to the list. Does not check for duplicates. Does
-	// not check validity.
+	// Simply adds the input String to the attribute list. This String can be anything,
+	// even containing newlines or curly braces. BE CAREFUL.
 	public void addAttribute(String in) {
 		String[] newList=new String[numAttributes+1];
 		for(int i=0;i<numAttributes;i++) { // copy the current attribute list
@@ -83,6 +83,72 @@ public class Entity {
 		numAttributes++;
 	}
 	
+	// addAttribute(String, String)
+	// Adds the specified attribute with the specified value to the list.
+	public void addAttribute(String attribute, String value) {
+		addAttribute("\""+attribute+"\" \""+value+"\"");
+	}
+	
+	// +toByteArray()
+	// Returns the entity as an array of bytes. This could be faster than just
+	// concatenating all the damn Strings, it depends on how the String class
+	// handles the getBytes() conversion. Judging by how much faster my code
+	// is than the stupid DataOutputStream, it won't be great. I might have
+	// to look at the code in the String class and try to think of a better
+	// way than what they have there.
+	//
+	// This works much faster than toString, especially for entities with a LOT
+	// of data. All the String concatenation in toString was building up, with
+	// thousands of Strings to stick together and
+	public byte[] toByteArray() {
+		byte[] out;
+		int len=0;
+		// Get the lengths of all attributes together
+		for(int i=0;i<attributes.length;i++) {
+			len+=attributes[i].length()+1; // Gonna need a newline after each attribute or they'll get jumbled together
+		}
+		out=new byte[len];
+		int offset=0;
+		for(int i=0;i<attributes.length;i++) { // For each attribute
+			for(int j=0;j<attributes[i].length();j++) { // Then for each byte in the attribute
+				out[j+offset]=(byte)attributes[i].charAt(j); // add it to the output array
+			}
+			out[offset+attributes[i].length()]=(byte)0x0A;
+			offset+=attributes[i].length()+1;
+		}
+		return out;
+	}
+
+	// +toString()
+	// Returns the entity as an ASCII entity structure. The output of this method
+	// reads as a complete entity that could be put into a map with no problems,
+	// and that will be the primary use case for this method. Be sure to add the
+	// newlines and curly braces around the entity if using this method to create
+	// a new entities lump file, unless curly braces are part of the attributes
+	// array.
+	public String toString() {
+		String out="";
+		for(int i=0;i<attributes.length;i++) {
+			if(!(attributes[i].charAt(0)=='}')) {
+				out+=attributes[i]+"\n";
+			} else { // Character is '}'
+				out+=attributes[i];
+			}
+		}
+		return out;
+	}
+	
+	// +isBrushBased()
+	// Reads the first character of the model attribute. If it's *, then it's a brush
+	// based entity and this method returns true. If not, it returns false.
+	public boolean isBrushBased() {
+		try {
+			return (getAttribute("model").charAt(0)=='*');
+		} catch(java.lang.StringIndexOutOfBoundsException e) { // The entity has no "model"
+			return false;
+		}
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// +setData(String)
@@ -91,7 +157,7 @@ public class Entity {
 	// This input String CAN include the { and } from the entity structure, in that it 
 	// won't cause any errors in the program. However if and when you want to write the
 	// entities back into a lump you must remember whether you included them or not. The
-	// default behavior is not to include them.
+	// behavior of the Lump00 class is not to include them.
 	public void setData(String in) {
 		Scanner reader=new Scanner(in);
 		reader.useDelimiter((char)0x0A+"");
@@ -110,38 +176,23 @@ public class Entity {
 			// This will trim all the 0D bytes before the 0A delimiters if they exist,
 			// since the Windows newline sequence is 0D0A and all its text editors use
 			// that. This keeps the data from getting confusing to this program, but
-			// also saves a small amount of space in the output map itself.
+			// also saves a small amount of space in the output lump itself.
 			if(current.charAt(current.length()-1)==(char)0x0D) {
 				current=current.substring(0,current.length()-1);
 			}
 			attributes[i]=current;
 		}
 	}
-
-	// +getEntity()
-	// Returns the entity as an ASCII entity structure. The output of this method
-	// reads as a complete entity that could be put into a map with no problems,
-	// and that will be the primary use case for this method. Be sure to add the
-	// newlines around the entity if using this method to create a new entities
-	// lump file.
-	public String getEntity() {
-		String out="{\n";
-		for(int i=0;i<attributes.length;i++) {
-			out+=attributes[i]+"\n";
-		}
-		return out+"}";
-	}
-	
-	// +printEntity()
-	// Simply prints
-	public void printEntity() {
-		System.out.println(getEntity());
-	}
 	
 	// +getAttribute(String)
 	// Takes in an attribute as a String and returns the value of that attribute,
-	// if it exists. If not, throw a not found exception.
-	public String getAttribute(String attribute) throws AttributeNotFoundException {
+	// if it exists. If not, return null. I used to have an exception for this,
+	// but always catching it was a pain in the ass. So instead, if the attribute
+	// doesn't exist, just return an empty String. I don't think I've ever seen
+	// an empty string used as a value in a map before, and either way the setAttribute
+	// method will automatically add an attribute if it doesn't exist, and just
+	// change it if it does, whether it's empty or not.
+	public String getAttribute(String attribute) {
 		String output="";
 		for(int i=0;i<numAttributes;i++) {
 			try {
@@ -152,9 +203,6 @@ public class Entity {
 			} catch(StringIndexOutOfBoundsException e) { // for cases where the whole String is shorter than
 				;                                         // the name of the attribute we're looking for. Do nothing.
 			}
-		}
-		if (output.equals("")) {
-			throw new AttributeNotFoundException();
 		}
 		return output;
 	}
@@ -172,13 +220,12 @@ public class Entity {
 					number=Integer.parseInt(attributes[i].substring(10,attributes[i].length()-1));
 					break;
 				}
-			} catch(StringIndexOutOfBoundsException e) {
+			} catch(StringIndexOutOfBoundsException e) { // substring(0,7) was longer than the String
 				;
-			} catch(NumberFormatException e) { 
+			} catch(NumberFormatException e) { // The model wasn't a number
 				;
 			}
 		}
-		
 		return number;
 	}
 	
@@ -199,14 +246,24 @@ public class Entity {
 			}
 		}
 		if(!done) {
-			String[] newAttributes=new String[attributes.length+1];
-			for(int i=0;i<attributes.length;i++) {
-				newAttributes[i]=attributes[i];
-			}
-			newAttributes[attributes.length]="\""+attribute+"\" \""+value+"\"";
-			numAttributes++;
-			attributes=newAttributes;
+			addAttribute(attribute, value);
 		}
+	}
+	
+	// getOrigin()
+	// Returns the three components of the entity's "origin" attribute as an array
+	// of three doubles. Since everything is a string anyway, I can be as precise
+	// as I want.
+	public double[] getOrigin() {
+		double[] output=new double[3]; // initializes to {0,0,0}
+		if(!getAttribute("origin").equals("")) {
+			String origin=getAttribute("origin");
+			Scanner numGetter=new Scanner(origin);
+			for(int i=0;i<2&&numGetter.hasNext();i++) {
+				output[i]=numGetter.nextDouble();
+			}
+		}
+		return output;
 	}
 	
 	// getNumAttributes()

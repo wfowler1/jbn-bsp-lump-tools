@@ -45,6 +45,14 @@ public class Lump01 {
 		}
 	}
 	
+	public Lump01(Lump01 in) {
+		numPlns=in.getNumElements();
+		planes=new Plane[numPlns];
+		for(int i=0;i<numPlns;i++) {
+			planes[i]=new Plane(in.getPlane(i).getA(), in.getPlane(i).getB(), in.getPlane(i).getC(), in.getPlane(i).getDist(), in.getPlane(i).getType());
+		}
+	}
+	
 	// METHODS
 	
 	// -populatePlaneList()
@@ -128,17 +136,17 @@ public class Lump01 {
 			byte[] data=new byte[numPlns*20];
 			for(int i=0;i<numPlns;i++) {
 				// This is MUCH FASTER than using a DataOutputStream
-				int out=Float.floatToRawIntBits(planes[i].getX());
+				int out=Float.floatToRawIntBits(planes[i].getA());
 				data[(i*20)+3]=(byte)((out >> 24) & 0xFF);
 				data[(i*20)+2]=(byte)((out >> 16) & 0xFF);
 				data[(i*20)+1]=(byte)((out >> 8) & 0xFF);
 				data[i*20]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(planes[i].getY());
+				out=Float.floatToRawIntBits(planes[i].getB());
 				data[(i*20)+7]=(byte)((out >> 24) & 0xFF);
 				data[(i*20)+6]=(byte)((out >> 16) & 0xFF);
 				data[(i*20)+5]=(byte)((out >> 8) & 0xFF);
 				data[(i*20)+4]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(planes[i].getZ());
+				out=Float.floatToRawIntBits(planes[i].getC());
 				data[(i*20)+11]=(byte)((out >> 24) & 0xFF);
 				data[(i*20)+10]=(byte)((out >> 16) & 0xFF);
 				data[(i*20)+9]=(byte)((out >> 8) & 0xFF);
