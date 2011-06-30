@@ -58,6 +58,27 @@ public class Lump07 {
 		reader.close();
 	}
 	
+	// save(String)
+	// Saves the lump to the specified path
+	public void save(String path) {
+		try {
+			File newFile=new File(path+"\\07 - Visibility.hex");
+			if(!newFile.exists()) {
+				newFile.createNewFile();
+			} else {
+				newFile.delete();
+				newFile.createNewFile();
+			}
+			FileOutputStream visWriter=new FileOutputStream(newFile);
+			for(int i=0;i<numPVS;i++) {
+				visWriter.write(PVSes[i]);
+			}
+			visWriter.close();
+		} catch(java.io.IOException e) {
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+		}
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump

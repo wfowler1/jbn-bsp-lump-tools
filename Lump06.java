@@ -5,7 +5,6 @@
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.util.*;
 
@@ -91,15 +90,15 @@ public class Lump06 {
 				newFile.delete();
 				newFile.createNewFile();
 			}
-			FileOutputStream meshFile=new FileOutputStream(newFile);
-			DataOutputStream meshWriter=new DataOutputStream(meshFile);
+			FileOutputStream meshWriter=new FileOutputStream(newFile);
 			for(int i=0;i<numMeshes;i++) {
-				meshWriter.writeInt(meshes[i]);
+				// This is MUCH faster than using DataOutputStream
+				byte[] output={(byte)((meshes[i] >> 0) & 0xFF), (byte)((meshes[i] >> 8) & 0xFF), (byte)((meshes[i] >> 16) & 0xFF), (byte)((meshes[i] >> 24) & 0xFF)};
+				meshWriter.write(output);
 			}
 			meshWriter.close();
-			meshFile.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving meshes, lump probably not saved!");
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
 		}
 	}
 	
@@ -131,5 +130,9 @@ public class Lump06 {
 	
 	public int[] getMesh() {
 		return meshes;
+	}
+	
+	public void setMesh(int i, int in) {
+		meshes[i]=in;
 	}
 }

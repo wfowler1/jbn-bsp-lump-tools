@@ -5,7 +5,6 @@
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 
 public class Lump04 {
@@ -93,7 +92,6 @@ public class Lump04 {
 	
 	// Save(String)
 	// Saves the lump to the specified path.
-	// TODO: FIND A FASTER METHOD FOR DOING THIS, DataOutputStream is SLOW
 	public void save(String path) {
 		try {
 			File newFile=new File(path+"\\04 - Vertices.hex");
@@ -103,17 +101,28 @@ public class Lump04 {
 				newFile.delete();
 				newFile.createNewFile();
 			}
-			FileOutputStream vertexFile=new FileOutputStream(newFile);
-			DataOutputStream vertexWriter=new DataOutputStream(vertexFile);
+			FileOutputStream vertexWriter=new FileOutputStream(newFile);
 			for(int i=0;i<numVerts;i++) {
-				vertexWriter.writeFloat(vertices[i].getX());
-				vertexWriter.writeFloat(vertices[i].getY());
-				vertexWriter.writeFloat(vertices[i].getZ());
+				// This is MUCH faster than using DataOutputStream
+				int out=Float.floatToRawIntBits(vertices[i].getX());
+				byte[] output={(byte)((out >> 0) & 0xFF), (byte)((out >> 8) & 0xFF), (byte)((out >> 16) & 0xFF), (byte)((out >> 24) & 0xFF)};
+				vertexWriter.write(output);
+				out=Float.floatToRawIntBits(vertices[i].getY());
+				output[3]=(byte)((out >> 24) & 0xFF);
+				output[2]=(byte)((out >> 16) & 0xFF);
+				output[1]=(byte)((out >> 8) & 0xFF);
+				output[0]=(byte)((out >> 0) & 0xFF);
+				vertexWriter.write(output);
+				out=Float.floatToRawIntBits(vertices[i].getZ());
+				output[3]=(byte)((out >> 24) & 0xFF);
+				output[2]=(byte)((out >> 16) & 0xFF);
+				output[1]=(byte)((out >> 8) & 0xFF);
+				output[0]=(byte)((out >> 0) & 0xFF);
+				vertexWriter.write(output);
 			}
 			vertexWriter.close();
-			vertexFile.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving vertices, lump probably not saved!");
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
 		}
 	}
 	

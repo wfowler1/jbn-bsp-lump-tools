@@ -97,7 +97,7 @@ public class Lump03 {
 			}
 			materialWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving textures, lump probably not saved!");
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
 		}
 	}
 	
@@ -129,5 +129,9 @@ public class Lump03 {
 	
 	public String[] getMaterials() {
 		return materials;
+	}
+	
+	public void setMaterial(int i, String in) {
+		materials[i]=in;
 	}
 }

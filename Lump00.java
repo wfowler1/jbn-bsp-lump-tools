@@ -122,6 +122,11 @@ public class Lump00 {
 		for(int i=0;i<numEnts;i++) { // copy the entities from this lump into a new array
 			newlist[i]=entities[i];
 		}
+		// TODO: Find a better way to find this number than accessing the file, since the lump
+		// could have changed in RAM by this program. I'd rather not have to save after every
+		// single thing I do.
+		// On the other hand, as long as NONE of the lump files are saved then using the files
+		// will work okay, since all work is done in RAM before it is saved.
 		File myLump14=new File(data.getParent()+"\\14 - Models.hex");
 		int num14objs=(int)myLump14.length()/56;
 		for(int i=0;i<in.getEntities().length;i++) {
@@ -162,7 +167,7 @@ public class Lump00 {
 														  // clearly defined in the BSP header.
 			entityWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving entities, lump probably not saved!");
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
 		}
 	}
 	

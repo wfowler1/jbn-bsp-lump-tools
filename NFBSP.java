@@ -33,6 +33,7 @@ import java.io.FileInputStream;
 import java.io.PrintWriter;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
+import java.util.Date;
 
 public class NFBSP {
 
@@ -65,7 +66,6 @@ public class NFBSP {
 	private Lump16 myL16;
 	private Lump17 myL17;
 	
-	// For modularity, this is handled as a constant throughout this class.
 	public final int NUMLUMPS=18;
 	
 	// This just allows us to reference the lump by name rather than index.
@@ -100,13 +100,18 @@ public class NFBSP {
 	// Visibility varies for every map, and will be determined by constructor
 	public int[] lumpDataSizes = {-1, 20, 64, 64, 12, -1, 4, 0, 36, 48, 3, 48, 4, 4, 56, 12, 8, 32};
 	
+	private boolean modified=false; // Every method in this class that modifies the data in RAM
+	                        // will set this to true. If something else sets up an NFBSP
+									// object then modifies the lumps directly through accessors
+									// then this boolean will not change.
+	
 	// CONSTRUCTORS
 	// This accepts a file path and parses it into the form needed. If the file is empty (or not found)
 	// the program fails nicely.
 	public NFBSP(String in) {
 		try {
 			if (in.charAt(in.length()-1) != '\\' && in.charAt(in.length()-1) != '/') {
-				in+="\\";
+				in+="\\"; // Add a '\' character to the end of the path if it isn't already there
 			}
 			filepath=in;
 			
@@ -178,36 +183,90 @@ public class NFBSP {
 	// possible the maps will have identical planes and other structures,
 	// but that's only likely to happen when combining two very similar
 	// maps (such as the infiltrate and escape mission maps).
-	public void combineBSP(NFBSP other) throws java.io.FileNotFoundException, java.io.IOException {
-		myL0.add(other.getLump00());
-		myL1.add(other.getLump01());
-		myL2.add(other.getLump02());
-		myL3.add(other.getLump03());
-		myL4.add(other.getLump04());
-		myL5.add(other.getLump05());
-		myL6.add(other.getLump06());
+	//
+	// Whether this works or not is very iffy, especially since Nodes
+	// require the data they reference to be on one side of a plane or
+	// another. If nodes define what is on either side of a plane, then
+	// why is the SAME list of planes referenced by three other unique
+	// lumps with their own data structures? We need the source code to
+	// this ridiculous engine, or at least a reliable reverse engineering.
+	//
+	// Visibility is another wildcard. How do you combine the visibility
+	// data for two maps, when the amount of bits in a visibility structure
+	// doesn't match the number of leaves in the map? This program is not
+	// a map compiler, so I doubt it's possible to reliably create a working
+	// visibility lump. Though I'd rather not do this, I'm probably going to
+	// have to have a lump full of TRUEs and have every leaf reference that.
+	// Running a visibility algorithm is a long process that I have no idea
+	// how to do, and BVIS can't do it without portal files created by BBSP.
+	//
+	// One possible solution is to decompile and recompile the map after this
+	// process is run, but (for now) that is beyond the scope of this program.
+	public void combineBSP(NFBSP other) {
+		try {
+			myL0.add(other.getLump00());
+			myL1.add(other.getLump01());
+			myL2.add(other.getLump02());
+			myL3.add(other.getLump03());
+			myL4.add(other.getLump04());
+			myL5.add(other.getLump05());
+			myL6.add(other.getLump06());
+			// myL7.add(other.getLump07());
+			myL8.add(other.getLump08());
+			myL9.add(other.getLump09());
+			myL10.add(other.getLump10());
+			modified=true;
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("Cannot find second BSP's files!");
+		} catch(java.io.IOException e) {
+			System.out.println("Unknown error adding BSP files!");
+		}
 	}
 	
 	// saveLumps(String)
 	// Tells the lumps to save their data into the specified path.
+	// TODO: Speed this up a bit. I've already reaped some benefits from
+	// not using DataOutputStream but it's still quite slow. I'd like to
+	// call this method often.
 	public void saveLumps(String path) {
-		System.out.println("Saving entities...");
-		myL0.save(path);
-		System.out.println("Saving planes...");
-		myL1.save(path);
-		System.out.println("Saving textures...");
-		myL2.save(path);
-		System.out.println("Saving materials...");
-		myL3.save(path);
-		System.out.println("Saving vertices...");
-		myL4.save(path);
-		System.out.println("Saving normals...");
-		myL5.save(path);
-		System.out.println("Saving meshes...");
-		myL6.save(path);
+		Date pre=new Date();
+		if(modified || true) { // TODO: remove "true"
+			System.out.println("Saving entities...");
+			myL0.save(path);
+			System.out.println("Saving planes...");
+			myL1.save(path);
+			System.out.println("Saving textures...");
+			myL2.save(path);
+			System.out.println("Saving materials...");
+			myL3.save(path);
+			System.out.println("Saving vertices...");
+			myL4.save(path);
+			System.out.println("Saving normals...");
+			myL5.save(path);
+			System.out.println("Saving meshes...");
+			myL6.save(path);
+			System.out.println("Saving visibility...");
+			myL7.save(path);
+			System.out.println("Saving nodes...");
+			myL8.save(path);
+			System.out.println("Saving faces...");
+			myL9.save(path);
+			System.out.println("Saving lightmaps...");
+			myL10.save(path);
+			System.out.println("Saving leaves...");
+			myL11.save(path);
+			System.out.println("Saving mark surfaces...");
+			myL12.save(path);
+		}
+		Date post=new Date();
+		System.out.println(post.getTime()-pre.getTime()+" milliseconds elapsed");
 	}
 	
 	// ACCESSORS/MUTATORS
+	public boolean isModified() {
+		return modified;
+	}
+	
 	public Lump00 getLump00() {
 		return myL0;
 	}
@@ -242,5 +301,21 @@ public class NFBSP {
 	
 	public Lump08 getLump08() {
 		return myL8;
+	}
+	
+	public Lump09 getLump09() {
+		return myL9;
+	}
+	
+	public Lump10 getLump10() {
+		return myL10;
+	}
+	
+	public Lump11 getLump11() {
+		return myL11;
+	}
+	
+	public Lump12 getLump12() {
+		return myL12;
 	}
 }

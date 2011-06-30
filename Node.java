@@ -112,4 +112,44 @@ public class Node {
 	public float[] getMins() {
 		return mins;
 	}
+	
+	// People probably shouldn't fuck with these, though some neat experiments can
+	// be created by changing a single node reference to a random leaf. You can
+	// get rid of half the map just by changing one int!
+	public void setPlane(int in) {
+		plane=in;
+	}
+	
+	public void setChild1(int in) {
+		child1=in;
+	}
+	
+	public void setChild2(int in) {
+		child2=in;
+	}
+	
+	// Some fun mods could be made by changing these mins and maxs, if done properly.
+	public void setMinX(float in) {
+		mins[X]=in;
+	}
+	
+	public void setMinY(float in) {
+		mins[Y]=in;
+	}
+	
+	public void setMinZ(float in) {
+		mins[Z]=in;
+	}
+	
+	public void setMaxX(float in) {
+		maxs[X]=in;
+	}
+	
+	public void setMaxY(float in) {
+		maxs[Y]=in;
+	}
+	
+	public void setMaxZ(float in) {
+		maxs[Z]=in;
+	}
 }

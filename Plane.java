@@ -39,6 +39,9 @@ public class Plane {
 
 	// This one takes an array of bytes (as if read directly from a file) and reads them
 	// directly into the proper data types.
+	// Another reason to port this to a different language: JAVA USES BIG ENDIAN BYTE ORDER
+	// Maybe there's some property of the runtime you can set to use little endian. Maybe
+	// Java is just retarded.
 	public Plane(byte[] in) throws InvalidPlaneException {
 		if(in.length!=20) {
 			throw new InvalidPlaneException();
@@ -55,6 +58,9 @@ public class Plane {
 	}
 	
 	// METHODS
+	public void printPlane() {
+		System.out.println(coords[X] + " " + coords[Y] + " " + coords[Z] + " " + dist + " " + type);
+	}
 	
 	// ACCESSORS/MUTATORS
 	
@@ -81,5 +87,25 @@ public class Plane {
 	
 	public int getType() {
 		return type;
+	}
+	
+	public void setX(float in) {
+		coords[X]=in;
+	}
+	
+	public void setY(float in) {
+		coords[Y]=in;
+	}
+	
+	public void setZ(float in) {
+		coords[Z]=in;
+	}
+	
+	public void setDist(float in) {
+		dist=in;
+	}
+	
+	public void setType(int in) {
+		type=in;
 	}
 }

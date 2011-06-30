@@ -53,7 +53,7 @@ public class Lump05 {
 			normWriter.write(norms);
 			normWriter.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving normals, lump probably not saved!");
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
 		}
 	}
 	
