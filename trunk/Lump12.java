@@ -47,6 +47,11 @@ public class Lump12 {
 		}
 	}
 	
+	public Lump12(int[] in) {
+		marksurfaces=in;
+		numMSurfs=marksurfaces.length;
+	}
+	
 	// METHODS
 	
 	// -populateMSurfList()
@@ -70,22 +75,6 @@ public class Lump12 {
 		}
 		newList[numMSurfs]=in;
 		numMSurfs++;
-		marksurfaces=newList;
-	}	
-	
-	// +add(Lump12)
-	// adds every item from another lump12 object.
-	public void add(Lump12 in) {
-		int[] newList=new int[numMSurfs+in.getNumElements()];
-		File myLump09=new File(data.getParent()+"//09 - Faces.hex");
-		int sizeL09=(int)myLump09.length()/48;
-		for(int i=0;i<numMSurfs;i++) {
-			newList[i]=marksurfaces[i];
-		}
-		for(int i=0;i<in.getNumElements(); i++) {
-			newList[i+numMSurfs]=in.getMarkSurface(i)+sizeL09;
-		}
-		numMSurfs=numMSurfs+in.getNumElements();
 		marksurfaces=newList;
 	}
 	
@@ -115,14 +104,7 @@ public class Lump12 {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
-	
-	// save()
-	// Saves the lump, overwriting the one data was read from
-	public void save() {
-		save(data.getParent());
-	}
-
-	
+		
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump

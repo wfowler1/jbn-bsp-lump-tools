@@ -41,13 +41,16 @@ public class LumpTools {
 			myBSP.getLump09().getFace(i).setNumMeshs(0);
 		}*/
 		
-		System.out.print("Path to save decompiled map to: ");
-		String decompfolder=keyboard.nextLine();
-		myBSP.decompile(decompfolder);
+		//System.out.print("Path to save decompiled map to: ");
+		//String decompfolder=keyboard.nextLine();
+		//myBSP.decompile(decompfolder);
 		
-		//System.out.print("Path to save lumps to: ");
-		//String savefolder=keyboard.nextLine();
-		//myBSP.saveLumps(savefolder);
+		System.out.println("Optimizing BSP");
+		myBSP.optimizeBSP();
+		
+		System.out.print("Path to save lumps to: ");
+		String savefolder=keyboard.nextLine();
+		myBSP.saveLumps(savefolder);
 		
 		//NFBSP newBSP=new NFBSP(savefolder);
 	}

@@ -259,7 +259,7 @@ public class Entity {
 		if(!getAttribute("origin").equals("")) {
 			String origin=getAttribute("origin");
 			Scanner numGetter=new Scanner(origin);
-			for(int i=0;i<2&&numGetter.hasNext();i++) {
+			for(int i=0;i<3&&numGetter.hasNext();i++) {
 				output[i]=numGetter.nextDouble();
 			}
 		}

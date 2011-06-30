@@ -13,8 +13,13 @@ public class Lump11 {
 	
 	private File data;
 	private int numLeaves=0;
+	// There are two types of leaf, world and model. The BSP compiler and the game engine
+	// fail to make the distinction, instead reading all world leaves into model 0, and all
+	// model leaves are read by models 1-numModels. Model 0 is the world model, dereference
+	// all the faces/leaves for it and the world disappears visually but is still physically
+	// there.
 	private int numWorldLeaves=0;
-	private int numModelLeaves=numLeaves-numWorldLeaves;
+	private int numModelLeaves=0;
 	private Leaf[] leaves;
 	
 	// CONSTRUCTORS
@@ -24,6 +29,8 @@ public class Lump11 {
 		data=new File(in);
 		try {
 			numLeaves=getNumElements();
+			numWorldLeaves=getNumWorldLeaves();
+			numModelLeaves=numLeaves-numWorldLeaves;
 			leaves=new Leaf[numLeaves];
 			populateLeafList();
 		} catch(java.io.FileNotFoundException e) {
@@ -38,6 +45,8 @@ public class Lump11 {
 		data=in;
 		try {
 			numLeaves=getNumElements();
+			numWorldLeaves=getNumWorldLeaves();
+			numModelLeaves=numLeaves-numWorldLeaves;
 			leaves=new Leaf[numLeaves];
 			populateLeafList();
 		} catch(java.io.FileNotFoundException e) {
@@ -47,8 +56,17 @@ public class Lump11 {
 		}
 	}
 	
+	// Accepts an array of Leaf objects and sets the entire lump to it
 	public Lump11(Leaf[] in) {
 		leaves=in;
+		numLeaves=leaves.length;
+	}
+	
+	// Accepts an array of Leaf objects and sets the entire lump to it, and allows specification of world vs. model leaves
+	public Lump11(Leaf[] in, int newNumWorldLeaves, int newNumModelLeaves) {
+		leaves=in;
+		numWorldLeaves=newNumWorldLeaves;
+		numModelLeaves=newNumModelLeaves;
 		numLeaves=leaves.length;
 	}
 	
@@ -200,8 +218,49 @@ public class Lump11 {
 		}
 	}
 	
+	// The only way to separate world leavs from model leaves is to check lump14.
+	// One limitation: This depends on the world leaves starting from leaf 0, as
+	// done by all compilers. This could complicate things with manually added
+	// leaves.
+	public int getNumWorldLeaves() {
+		if(numWorldLeaves!=0) {
+			return numWorldLeaves;
+		} // else
+		try {
+			FileInputStream numWorldLeafGrabber=new FileInputStream(data.getParent()+"\\14 - Models.hex");
+			byte[] numWorldLeavesAsByteArray=new byte[4];
+			numWorldLeafGrabber.skip(44);
+			numWorldLeafGrabber.read(numWorldLeavesAsByteArray);
+			int numWL = numWorldLeavesAsByteArray[0] + numWorldLeavesAsByteArray[1]*256 + numWorldLeavesAsByteArray[2]*65536 + numWorldLeavesAsByteArray[3]*16777216;
+			numWorldLeafGrabber.close();
+			return numWL+1;
+		} catch(java.io.IOException e) { // If this is thrown, there's a problem accessing the models file. There's no other way, so set it to SOMETHING valid.
+			System.out.println("Warning: Problem accessing models lump, unknown number of world/model leaves!");
+			return numLeaves;
+		}
+	}
+	
+	public int getNumModelLeaves() {
+		return numModelLeaves;
+	}
+	
+	// Set number of world or model leaves. This is useful if a new Lump11 object was created,
+	// since it's new there's no way to know unless explicitly stated, since there's no corresponding
+	// Lump 14 file to reference.
+	public void setNumWorldLeaves(int in) {
+		numWorldLeaves=in;
+	}
+	
+	public void setNumModelLeaves(int in) {
+		numModelLeaves=in;
+	}
+	
 	public Leaf getLeaf(int i) {
 		return leaves[i];
+	}
+	
+	public void setLeaf(int i, Leaf in) {
+		leaves[i]=in;
 	}
 	
 	public Leaf[] getLeaves() {

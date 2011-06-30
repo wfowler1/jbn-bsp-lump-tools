@@ -46,6 +46,11 @@ public class Lump16 {
 		}
 	}
 	
+	public Lump16(BrushSide[] in) {
+		brushsides=in;
+		numBrshsds=brushsides.length;
+	}
+	
 	// METHODS
 	
 	// -populateBrushSideList()
@@ -82,27 +87,6 @@ public class Lump16 {
 	public void add(int inFace, int inPlane) {
 		add(new BrushSide(inFace, inPlane));
 	}
-	
-	// add(Lump16)
-	// Adds every brush side in another Lump16 object.
-	public void add(Lump16 in) {
-		BrushSide[] newList=new BrushSide[numBrshsds+in.getNumElements()];
-		File myLump01=new File(data.getParent()+"//01 - Planes.hex");
-		int sizeL01=(int)myLump01.length()/20;
-		File myLump09=new File(data.getParent()+"//09 - Faces.hex");
-		int sizeL09=(int)myLump09.length()/48;
-		for(int i=0;i<numBrshsds;i++) {
-			newList[i]=brushsides[i];
-		}
-		
-		for(int i=0;i<in.getNumElements();i++) {
-			newList[i+numBrshsds]=in.getBrushSide(i);
-			newList[i+numBrshsds].setFace(newList[i+numBrshsds].getFace()+sizeL09);
-			newList[i+numBrshsds].setPlane(newList[i+numBrshsds].getPlane()+sizeL01);
-		}
-		numBrshsds=numBrshsds+in.getNumElements();
-		brushsides=newList;
-	}
 
 	// save(String)
 	// Saves the lump to the specified path.
@@ -133,12 +117,6 @@ public class Lump16 {
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
-	}
-	
-	// save()
-	// Saves the lump, overwriting the one data was read from
-	public void save() {
-		save(data.getParent());
 	}
 	
 	// ACCESSORS/MUTATORS

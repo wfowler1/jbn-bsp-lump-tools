@@ -179,8 +179,7 @@ public class NFBSP {
 	// +optimizeBSP()
 	// This method will search through the entire BSP for duplicate
 	// data structures, and attempt to recycle them, making the map
-	// smaller. I don't know if the map compiler already does this,
-	// or if the game engine will like it.
+	// smaller.
 	//
 	// One limitation of this: it's very hard to recycle data structures
 	// referenced by one index then an amount of items (for example,
@@ -191,7 +190,7 @@ public class NFBSP {
 	//
 	// This could also lead to complications if further editing is done
 	// in the future. For this reason, this should only be used on BSPs
-	// being finalized or almost read for release.
+	// being finalized or almost ready for release, or for combined maps.
 	public void optimizeBSP() {
 		// One lump at a time, in order of lumps. If a lump cannot be
 		// optimized, and explanation is provided.
@@ -199,7 +198,8 @@ public class NFBSP {
 		System.out.println("\nOptimizing entities...");
 		optimizeEntities(); // Every entitiy is unique and cannot be optimized. However, some
 		                    // attributes are superfluous ("angles" "0 0 0") and some are
-								  // only used by Gearcraft ("sequencename", oven compile options)
+								  // only used by Gearcraft ("sequencename", oven compile options).
+								  // These can be safely deleted with no ingame consequences.
 		System.out.println("Optimizing planes...");
 		optimizePlanes();
 		System.out.println("Optimizing textures...");
@@ -213,7 +213,7 @@ public class NFBSP {
 		//optimizeMeshes();
 		alternativeOptimizeMeshes();
 		System.out.println("Optimizing visibilities...");
-		optimizeVisibility(); // Visibility is a ridiculous pile of garbage. But it's possible...
+		optimizeVisibility(); // Visibility is a pile of garbage. But it can be recycled.
 		// Nodes are always unique.
 		// Faces are referenced many times, and once in an index/items pair. Don't try this.
 		// There may be enough redundancy in the lighting structure, but since I don't know
@@ -224,14 +224,14 @@ public class NFBSP {
 		// Models, don't make me laugh.
 		// Brushes may be possible, but are probably all unique.
 		// Brush sides probably need to reference a specific face.
-		System.out.println("Optimizing texture scaling matrix...");
-		optimizeTexMatrix(); // Should be plenty of redundancy here!
+		//System.out.println("Optimizing texture scaling matrix...");
+		//optimizeTexMatrix(); // There is some redundancy here
 		
 		r.gc(); // Collect garbage, there may be a lot of it
 	}
 	
 	// optimizeEntities()
-	// Eliminates junk attributes like "angles" "0 0 0" and those only used by the map
+	// Eliminates junk attributes like "angles" "0 0 0" and those which are only used by the map
 	// editor, such as sequencename and oven compile options.
 	public void optimizeEntities() {
 		int numEnts=myL0.getNumElements();
@@ -243,10 +243,13 @@ public class NFBSP {
 				myL0.getEntity(i).deleteAttribute("angles");
 			}
 			if(myL0.getEntity(i).getAttribute("classname").equals("multi_manager")) {
-				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map, or defined as being anywhere really.
+				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map.
 			}
 			if(myL0.getEntity(i).getAttribute("classname").equals("env_fade")) {
-				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map, or defined as being anywhere really.
+				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map.
+			}
+			if(myL0.getEntity(i).getAttribute("classname").equals("multisource")) {
+				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multisources no longer need to be within a map.
 			}
 			myL0.getEntity(i).deleteAttribute("sequencename");
 		}
@@ -327,6 +330,7 @@ public class NFBSP {
 						}
 					}
 					myL2.delete(j); // delete duplicate
+					numDeldTxts++;
 					numTxts--; // The array has gotten smaller
 					j--; // since element j+1 is now element j, we must check j again
 				}
@@ -430,7 +434,7 @@ public class NFBSP {
 		
 		// Phase 2: Find mesh bunches which are pieces of larger bunches and take advantage of that.
 		// Really, this phase is for squeezing a couple hundred more bytes out of the lump. Phase 1
-		// is good enough to shrink a 500KB file to a file maybe 1KB, this just brings that 1KK down
+		// is good enough to shrink a 500KB file to a file maybe 1KB, this just brings that 1KB down
 		// to maybe 200 bytes or less.
 		
 		// First, I need to figure out how many unique mesh bunches there are. The references in faces
@@ -463,7 +467,7 @@ public class NFBSP {
 	public void alternativeOptimizeMeshes() {
 		int highestValue=2; // Assumption: The highest number will always be at least 2
 		for(int i=0;i<myL6.getNumElements()/3;i++) { // for each set of three ints in the lump
-			if(myL6.getMesh((i*3)+2)>highestValue) { // Go through each third one
+			if(myL6.getMesh((i*3)+2)>highestValue) { // Assumption: Go through each third one because it'll be higher than the previous two
 				highestValue=myL6.getMesh((i*3)+2); // and find and record the highest value
 			}
 		}
@@ -515,6 +519,8 @@ public class NFBSP {
 	// optimizeTexMatrix()
 	// Finds any texture matrixes that are the same data, deletes all except one and
 	// only use that one.
+	// TODO: This causes an "Alloclightmap: full" error. Is there something wrong, or can
+	// this simply not be recycled?
 	public void optimizeTexMatrix() {
 		int numDeldMatxs=0;
 		int numMatxs=myL17.getNumElements();
@@ -578,11 +584,41 @@ public class NFBSP {
 	//
 	// TODO: Finish moving the add(Lump) methods into this class. It simplifies
 	// things a lot. Just make them return a new lump## object.
-	// TODO: Figure out why lighting gets fucked up in the process
-	// TODO: Move all world faces and world leaves together in their lumps
-	// and make sure model #0 references all of them. This will be a toughie.
+	// TODO: Figure out why lighting gets messed up in the process
+	// TODO: Figure out what's broken. The results of this will only load in a dedicated console.
+	
+	// I need these here so I don't have to pass all this crap from one method to another.
+	private int numWorldFaces;
+	private int numModelFaces;
+	private int numWorldFacesOther;
+	private int numModelFacesOther;
+	
+	private int numWorldLeaves;
+	private int numModelLeaves;
+	private int numWorldLeavesOther;
+	private int numModelLeavesOther;
+	
 	public void combineBSP(NFBSP other) {
 		try {
+			numWorldFaces=myL14.getModel(0).getNumFaces();
+			numModelFaces=myL9.getNumElements()-numWorldFaces;
+			numWorldFacesOther=other.getLump14().getModel(0).getNumFaces();
+			numModelFacesOther=other.getLump09().getNumElements()-numWorldFacesOther;
+			
+			numWorldLeaves=myL14.getModel(0).getNumLeafs();
+			numModelLeaves=myL11.getNumElements()-numWorldLeaves-1;
+			numWorldLeavesOther=other.getLump14().getModel(0).getNumLeafs();
+			numModelLeavesOther=other.getLump11().getNumElements()-numWorldLeavesOther-1;
+			
+			System.out.println(numWorldFaces+" world faces in map");
+			System.out.println(numModelFaces+" model faces in map");
+			System.out.println(numWorldFacesOther+" world faces in other map");
+			System.out.println(numModelFacesOther+" model faces in other map");
+			System.out.println(numWorldLeaves+" world leaves in map");
+			System.out.println(numModelLeaves+" model leaves in map");
+			System.out.println(numWorldLeavesOther+" world leaves in other map");
+			System.out.println(numModelLeavesOther+" model leaves in other map");
+			
 			// By creating new lump objects instead of rewriting them as I go,
 			// I don't need to worry about one combining method overwriting
 			// data that another combining method needs. As a bonus, this also
@@ -626,12 +662,16 @@ public class NFBSP {
 			// myL10.delAllPixels();
 			
 			newL11=combineLeaves(other.getLump11());
+			newL12=combineMarkSurfaces(other.getLump12());
 			
-			myL12.add(other.getLump12());
 			myL13.add(other.getLump13());
-			myL14.add(other.getLump14());
+			
+			newL14=combineModels(other.getLump14());
+			
 			myL15.add(other.getLump15());
-			myL16.add(other.getLump16());
+
+			newL16=combineBrushSides(other.getLump16());
+			
 			myL17.add(other.getLump17());
 			
 			//myL0=newL0;
@@ -646,11 +686,11 @@ public class NFBSP {
 			myL9=newL9;
 			//myL10=newL10;
 			myL11=newL11;
-			//myL12=newL12;
+			myL12=newL12;
 			//myL13=newL13;
-			//myL14=newL14;
+			myL14=newL14;
 			//myL15=newL15;
-			//myL16=newL16;
+			myL16=newL16;
 			//myL17=newL17;
 			
 			modified=true;
@@ -665,7 +705,7 @@ public class NFBSP {
 	// Combines two Lump08s.
 	// TODO: Find a way to ensure the game engine actually loads the added lump data.
 	// As it is, I've tried to put all the stuff on one side of a plane that's really
-	// far out of the world, but I don't know if this works.
+	// far out of the world, but I doubt this works.
 	public Lump08 combineNodes(Lump08 in) {
 		Node[] newList=new Node[myL8.getNumElements()+in.getNumElements()+3]; // Need three new nodes. First
 		                                                                      // is the new root, second and
@@ -683,25 +723,41 @@ public class NFBSP {
 		newList[0]=newRoot;
 		newList[1]=refMap1;
 		newList[2]=refMap2;
-		for(int i=0;i<myL8.getNumElements();i++) {
+		for(int i=0;i<myL8.getNumElements();i++) { // For each node in THIS NFBSP object
 			newList[i+3]=myL8.getNode(i);
 			if(newList[i+3].getChild1()>=0) { // Child1 is a Node
 				newList[i+3].setChild1(newList[i+3].getChild1()+3);
+			} else { // Child1 is a leaf
+				if(newList[i+3].getChild1()*-1>numWorldLeaves) { // Leaf is a model leaf
+					newList[i+3].setChild1(newList[i+3].getChild1()+numWorldLeavesOther);
+				}
 			}
-			if(newList[i+3].getChild2()>=0) { // Child1 is a Node
+			if(newList[i+3].getChild2()>=0) { // Child2 is a Node
 				newList[i+3].setChild2(newList[i+3].getChild2()+3);
+			} else { // Child2 is a leaf
+				if(newList[i+3].getChild2()*-1>numWorldLeaves) { // Leaf is a model leaf
+					newList[i+3].setChild2(newList[i+3].getChild2()+numWorldLeavesOther);
+				}
 			}
 		}
-		for(int i=0;i<in.getNumElements();i++) {
+		for(int i=0;i<in.getNumElements();i++) { // For each node in the OTHER NFBSP object
 			newList[i+myL8.getNumElements()+3]=in.getNode(i);
 			if(newList[i+myL8.getNumElements()+3].getChild1()<0) { // Child1 is a Leaf
 				// leaf indices are negative, so subtract the size of the old leaf list from the new index
-				newList[i+myL8.getNumElements()+3].setChild1(newList[i+myL8.getNumElements()+3].getChild1()-myL11.getNumElements());
+				if(newList[i+myL8.getNumElements()+3].getChild1()*-1<numWorldLeavesOther) { // Leaf is a world leaf
+					newList[i+myL8.getNumElements()+3].setChild1(newList[i+myL8.getNumElements()+3].getChild1()-numWorldLeaves);
+				} else { // Leaf is a model leaf
+					newList[i+myL8.getNumElements()+3].setChild1(newList[i+myL8.getNumElements()+3].getChild1()-myL11.getNumElements());
+				}
 			} else { // child1 will be a Node
 				newList[i+myL8.getNumElements()+3].setChild1(newList[i+myL8.getNumElements()+3].getChild1()+myL8.getNumElements()+3);
 			}
 			if(newList[i+myL8.getNumElements()+3].getChild2()<0) { // Child2 is a Leaf
-				newList[i+myL8.getNumElements()+3].setChild2(newList[i+myL8.getNumElements()+3].getChild2()-myL11.getNumElements());
+				if(newList[i+myL8.getNumElements()+3].getChild2()*-1<numWorldLeavesOther) { // Leaf is a world leaf
+					newList[i+myL8.getNumElements()+3].setChild2(newList[i+myL8.getNumElements()+3].getChild2()-numWorldLeaves);
+				} else { // Leaf is a model leaf
+					newList[i+myL8.getNumElements()+3].setChild2(newList[i+myL8.getNumElements()+3].getChild2()-myL11.getNumElements());
+				}
 			} else { // child2 will be a Node
 				newList[i+myL8.getNumElements()+3].setChild2(newList[i+myL8.getNumElements()+3].getChild2()+myL8.getNumElements()+3);
 			}
@@ -711,54 +767,198 @@ public class NFBSP {
 	
 	// combineFaces(Lump09)
 	// Adds every face in another Lump09 object.
-	// TODO: Move all world faces to be before all model faces, much like with leaves
 	public Lump09 combineFaces(Lump09 in) {
 		Face[] newList=new Face[myL9.getNumElements()+in.getNumElements()];
-		for(int i=0;i<myL9.getNumElements();i++) {
+		// Copy world faces first
+		for(int i=0;i<numWorldFaces;i++) {
 			newList[i]=myL9.getFace(i);
 		}
-		for(int i=0;i<in.getNumElements();i++) {
-			// All of this MUST be done for every face added from the second map. Therefore,
-			// it is important (but not essential) that the user add a smaller map to a bigger
-			// one, not the other way around.
-			newList[i+myL9.getNumElements()]=in.getFace(i);
-			newList[i+myL9.getNumElements()].setPlane(newList[i+myL9.getNumElements()].getPlane()+myL1.getNumElements());
-			newList[i+myL9.getNumElements()].setVert(newList[i+myL9.getNumElements()].getVert()+myL4.getNumElements());
-			newList[i+myL9.getNumElements()].setMeshs(newList[i+myL9.getNumElements()].getMeshs()+myL6.getNumElements());
-			newList[i+myL9.getNumElements()].setTexture(newList[i+myL9.getNumElements()].getTexture()+myL2.getNumElements());
-			newList[i+myL9.getNumElements()].setMaterial(newList[i+myL9.getNumElements()].getMaterial()+myL3.getNumElements());
-			newList[i+myL9.getNumElements()].setTexStyle(newList[i+myL9.getNumElements()].getTexStyle()+myL17.getNumElements());
-			newList[i+myL9.getNumElements()].setLgtMaps(newList[i+myL9.getNumElements()].getLgtMaps()+myL10.getNumElements());
+		for(int i=0;i<numWorldFacesOther;i++) {
+			newList[i+numWorldFaces]=in.getFace(i);
 		}
-		return new Lump09(newList);
+		// Now copy model faces
+		for(int i=0;i<numModelFaces;i++) {
+			newList[i+numWorldFaces+numWorldFacesOther]=myL9.getFace(i+numWorldFaces);
+		}
+		for(int i=0;i<numModelFacesOther;i++) {
+			newList[i+numWorldFaces+numWorldFacesOther+numModelFaces]=in.getFace(i+numWorldFacesOther);
+		}
+		
+		// Correct references into other lumps, by added world faces
+		for(int i=0;i<numWorldFacesOther;i++) {
+			newList[i+numWorldFaces].setPlane(newList[i+numWorldFaces].getPlane()+myL1.getNumElements());
+			newList[i+numWorldFaces].setVert(newList[i+numWorldFaces].getVert()+myL4.getNumElements());
+			newList[i+numWorldFaces].setMeshs(newList[i+numWorldFaces].getMeshs()+myL6.getNumElements());
+			newList[i+numWorldFaces].setTexture(newList[i+numWorldFaces].getTexture()+myL2.getNumElements());
+			newList[i+numWorldFaces].setMaterial(newList[i+numWorldFaces].getMaterial()+myL3.getNumElements());
+			newList[i+numWorldFaces].setTexStyle(newList[i+numWorldFaces].getTexStyle()+myL17.getNumElements());
+			newList[i+numWorldFaces].setLgtMaps(newList[i+numWorldFaces].getLgtMaps()+myL10.getNumElements());
+		}
+		// Correct references into other lumps, by added model faces
+		for(int i=0;i<numModelFacesOther;i++) {
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setPlane(newList[i+myL9.getNumElements()+numWorldFacesOther].getPlane()+myL1.getNumElements());
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setVert(newList[i+myL9.getNumElements()+numWorldFacesOther].getVert()+myL4.getNumElements());
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setMeshs(newList[i+myL9.getNumElements()+numWorldFacesOther].getMeshs()+myL6.getNumElements());
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setTexture(newList[i+myL9.getNumElements()+numWorldFacesOther].getTexture()+myL2.getNumElements());
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setMaterial(newList[i+myL9.getNumElements()+numWorldFacesOther].getMaterial()+myL3.getNumElements());
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setTexStyle(newList[i+myL9.getNumElements()+numWorldFacesOther].getTexStyle()+myL17.getNumElements());
+			newList[i+myL9.getNumElements()+numWorldFacesOther].setLgtMaps(newList[i+myL9.getNumElements()+numWorldFacesOther].getLgtMaps()+myL10.getNumElements());
+		}
+		return new Lump09(newList, numWorldFaces+numWorldFacesOther, numModelFaces+numModelFacesOther);
 	}
-
 	
 	// combineLeaves(Lump11)
 	// Adds every leaf in another Lump11 object.
-	// TODO: Put all world leaves before model leaves. These can be determined by looking
-	// at model 0 in Lump14, which is the world model. Models only reference leaves by
-	// index and amount, so leaves must be in the right places for referencing to work.
+	// TODO: Make sure all the indices are right, that dummy leaf really throws things off.
+	// I think this is right though.
 	public Lump11 combineLeaves(Lump11 in) {
-		Leaf[] newList=new Leaf[myL11.getNumElements()+in.getNumElements()];
-		for(int i=0;i<myL11.getNumElements();i++) {
+		Leaf[] newList=new Leaf[myL11.getNumElements()+in.getNumElements()-1];
+		// First copy world leaves, plus the dummy leaf 0
+		for(int i=0;i<numWorldLeaves+1;i++) {
 			newList[i]=myL11.getLeaf(i);
 			newList[i].setPVS(-1);
-		}
-		for(int i=0;i<in.getNumElements();i++) {
-			newList[i+myL11.getNumElements()]=in.getLeaf(i);
-			newList[i+myL11.getNumElements()].setMarkSurface(newList[i+myL11.getNumElements()].getMarkSurface()+myL12.getNumElements());
-			newList[i+myL11.getNumElements()].setMarkBrush(newList[i+myL11.getNumElements()].getMarkBrush()+myL13.getNumElements());
-			newList[i+myL11.getNumElements()].setPVS(-1);
 			// Visibility is impossible to determine
 		}
-		return new Lump11(newList);
+		for(int i=0;i<numWorldLeavesOther;i++) { // These +1s are not errors. I'm intentionally skipping the 0th leaf since it's a dummy leaf
+			newList[i+numWorldLeaves+1]=in.getLeaf(i+1);
+			newList[i+numWorldLeaves+1].setPVS(-1);
+		}
+		// Then copy model leaves
+		for(int i=0;i<numModelLeaves;i++) {
+			newList[i+numWorldLeaves+numWorldLeavesOther+1]=myL11.getLeaf(i+numWorldLeaves+1);
+			newList[i+numWorldLeaves+numWorldLeavesOther+1].setPVS(-1);
+		}
+		for(int i=0;i<numModelLeavesOther;i++) {
+			newList[i+numWorldLeaves+numWorldLeavesOther+numModelLeaves+1]=in.getLeaf(i+numWorldLeavesOther+1);
+			newList[i+numWorldLeaves+numWorldLeavesOther+numModelLeaves+1].setPVS(-1);
+		}
+		
+		// Correct references into other lumps, by added world leaves
+		for(int i=0;i<numWorldLeavesOther;i++) {
+			newList[i+numWorldLeaves+1].setMarkSurface(newList[i+numWorldLeaves+1].getMarkSurface()+myL12.getNumElements());
+			newList[i+numWorldLeaves+1].setMarkBrush(newList[i+numWorldLeaves+1].getMarkBrush()+myL13.getNumElements());
+		}
+		// Correct references into other lumps, by added model leaves
+		for(int i=0;i<numModelLeavesOther;i++) {
+			newList[i+numWorldLeaves+numWorldLeavesOther+numModelLeaves+1].setMarkSurface(newList[i+numWorldLeaves+numWorldLeavesOther+numModelLeaves+1].getMarkSurface()+myL12.getNumElements());
+			newList[i+numWorldLeaves+numWorldLeavesOther+numModelLeaves+1].setMarkBrush(newList[i+numWorldLeaves+numWorldLeavesOther+numModelLeaves+1].getMarkBrush()+myL13.getNumElements());
+		}
+		// Make sure the face and brush references stay 0 in all leaves of type 2
+		for(int i=0;i<newList.length;i++) {
+			if(newList[i].getType()==2) {
+				newList[i].setMarkSurface(0);
+				newList[i].setMarkBrush(0);
+			}
+		}
+		return new Lump11(newList, numWorldLeaves+numWorldLeavesOther, numModelLeaves+numModelLeavesOther);
+	}
+	
+	// combineMarkSurfaces(Lump12)
+	// Adds every mark surface from another lump12 object.
+	public Lump12 combineMarkSurfaces(Lump12 in) {
+		int[] newList=new int[myL12.getNumElements()+in.getNumElements()];
+		// Copy this NFBSP's mark surfaces and correct for the new face organization
+		for(int i=0;i<myL12.getNumElements();i++) {
+			newList[i]=myL12.getMarkSurface(i);
+			if(newList[i]>numWorldFaces) { // If this is a model face, add the number of world faces from the other map
+				newList[i]+=numWorldFacesOther;
+			}
+		}
+		for(int i=0;i<in.getNumElements(); i++) {
+			newList[i+myL12.getNumElements()]=in.getMarkSurface(i);
+			if(newList[i+myL12.getNumElements()]<numWorldFacesOther) { // If this is a world face, add only the number of world faces from the first map
+				newList[i+myL12.getNumElements()]+=numWorldFaces;
+			} else { // This is a model face. Add the total number of faces from the first map.
+				newList[i+myL12.getNumElements()]+=myL9.getNumElements();
+			}
+		}
+		return new Lump12(newList);
+	}
+	
+	// combineModels(Lump14)
+	// Adds every model in another Lump14 object, minus the first one. Instead, the mins and
+	// maxs from the first one are set to the lower and higher values between the two maps, respectively.
+	// This is because the first model is the world, and since two worlds are being combined, their
+	// models must be combined as well. The rest of the models are copied with their indices reduced
+	// by 1. This is already accounted for in the entities combine method.
+	public Lump14 combineModels(Lump14 in) {
+		Model[] newList=new Model[myL14.getNumElements()+in.getNumElements()-1];
+		for(int i=0;i<myL14.getNumElements();i++) {
+			newList[i]=myL14.getModel(i);
+		}
+		
+		// mins/maxs fixing
+		if(newList[0].getMinX()>in.getModel(0).getMinX()) {
+			newList[0].setMinX(in.getModel(0).getMinX());
+		}
+		if(newList[0].getMinY()>in.getModel(0).getMinY()) {
+			newList[0].setMinY(in.getModel(0).getMinY());
+		}
+		if(newList[0].getMinZ()>in.getModel(0).getMinZ()) {
+			newList[0].setMinZ(in.getModel(0).getMinZ());
+		}
+		if(newList[0].getMaxX()<in.getModel(0).getMaxX()) {
+			newList[0].setMaxX(in.getModel(0).getMaxX());
+		}
+		if(newList[0].getMaxY()<in.getModel(0).getMaxY()) {
+			newList[0].setMaxY(in.getModel(0).getMaxY());
+		}
+		if(newList[0].getMaxZ()<in.getModel(0).getMaxZ()) {
+			newList[0].setMaxZ(in.getModel(0).getMaxZ());
+		}
+		
+		// Leaf/face referencing. This will be all the world leaves and faces.
+		newList[0].setLeaf(1);
+		newList[0].setNumLeafs(numWorldLeaves+numWorldLeavesOther);
+		newList[0].setFace(0);
+		newList[0].setNumFaces(numWorldFaces+numWorldFacesOther);
+		
+		// Everything after this point will use model leaves/faces, since we just dealt with the world
+		for(int i=1;i<myL14.getNumElements();i++) { // Start with i=1 since the 0th one is handled above
+			newList[i].setLeaf(myL14.getModel(i).getLeaf()+numWorldLeavesOther);
+			newList[i].setFace(myL14.getModel(i).getFace()+numWorldFacesOther);
+		}
+		
+		for(int i=1;i<in.getNumElements();i++) { // Start with i=1 since the 0th one is handled above
+			newList[i+myL14.getNumElements()-1]=in.getModel(i);
+			newList[i+myL14.getNumElements()-1].setLeaf(newList[i+myL14.getNumElements()-1].getLeaf()+numWorldLeaves+numModelLeaves);
+			newList[i+myL14.getNumElements()-1].setFace(newList[i+myL14.getNumElements()-1].getFace()+numWorldFaces+numModelFaces);
+		}
+		return new Lump14(newList);
+	}
+	
+	// combineBrushSides(Lump16)
+	// Adds every brush side in another Lump16 object.
+	public Lump16 combineBrushSides(Lump16 in) {
+		BrushSide[] newList=new BrushSide[myL16.getNumElements()+in.getNumElements()];
+		for(int i=0;i<myL16.getNumElements();i++) {
+			newList[i]=myL16.getBrushSide(i);
+			if(newList[i].getFace()>numWorldFaces) { // If this is a model face
+				newList[i].setFace(myL16.getBrushSide(i).getFace()+numWorldFacesOther);
+			}
+		}
+		
+		for(int i=0;i<in.getNumElements();i++) {
+			newList[i+myL16.getNumElements()]=in.getBrushSide(i);
+			if(newList[i+myL16.getNumElements()].getFace()<numWorldFacesOther) { // If this is a world face
+				newList[i+myL16.getNumElements()].setFace(newList[i+myL16.getNumElements()].getFace()+numWorldFaces);
+			} else { // this is a model face
+				newList[i+myL16.getNumElements()].setFace(newList[i+myL16.getNumElements()].getFace()+numWorldFaces+numModelFaces);
+			}
+			newList[i+myL16.getNumElements()].setPlane(newList[i+myL16.getNumElements()].getPlane()+myL1.getNumElements());
+		}
+		return new Lump16(newList);
 	}
 	
 	// saveLumps(String)
 	// Tells the lumps to save their data into the specified path.
 	public void saveLumps(String path) {
 		if(modified || true) { // TODO: remove "true"
+			boolean recombine=false;
+			if(path.substring(path.length()-4).equalsIgnoreCase(".bsp")) {
+				recombine=true;
+				path=path.substring(0, path.length()-4);
+			}
 			if(!new File(path).exists()) {
 				new File(path).mkdirs();
 			}
@@ -798,35 +998,35 @@ public class NFBSP {
 			myL16.save(path);
 			System.out.println("Saving texture matrix...");
 			myL17.save(path);
+			LS ls=new LS(path);
+			ls.combineLumps();
 		}
 	}
 	
 	// +decompile()
 	// Attempts to convert the BSP file back into a .MAP file.
-	// This is tough for two reasons:
-	// 1. Models reference all solids via leafs, which reference brushes through
-	//    that stupid mark brushes lump.
-	// 2. Many times a leaf will reference several brushes at a time, or none at
-	//    all, and I don't know why or how to deal with it.
-	// Therefore, I have to make guesses about what to do in these cases. I just
-	// hope I'm right.
+	//
+	// TODO: There's one extremely hard problem. Sometimes planes are resused backward. It's nearly
+	// impossible to determine which way the plane needs to be flipped. Other than that, this
+	// algorithm is 100% finished.
 	//
 	// This is another one of the most complex things I've ever had to code. I've
 	// never nested for loops four deep before.
 	// Iterators:
 	// i: Current entity in the list
-	// j: Current leaf, referenced in a list by the model referenced by the current entity
-	// k: Current brush, referenced in a list by the current leaf.
-	// l: Current side of the current brush.
+	//  j: Current leaf, referenced in a list by the model referenced by the current entity
+	//   k: Current brush, referenced in a list by the current leaf.
+	//    l: Current side of the current brush.
 	public void decompile(String path) {
 		// Begin by copying all the entities into another Lump00 object. This is
 		// necessary because if I just modified the current entity list then it
-		// could be saved back into the BSP and really fuck some shit up.
+		// could be saved back into the BSP and really mess some stuff up.
 		Lump00 mapFile=new Lump00(myL0);
 		// Then I need to go through each entity and see if it's brush-based.
 		// Worldspawn is brush-based as well as any entity with model *#.
 		int numVertFaces=0;
 		int numPlaneFaces=0;
+		int numOriginBrushes=0;
 		for(int i=0;i<mapFile.getNumElements();i++) { // For each entity
 			int currentModel=-1;
 			if(mapFile.getEntity(i).isBrushBased()) {
@@ -854,12 +1054,17 @@ public class NFBSP {
 								Brush currentBrush=myL15.getBrush(myL13.getMarkBrush(firstBrushIndex+k)); // Get a handle to the brush
 								int firstSide=currentBrush.getFirstSide();
 								int numSides=currentBrush.getNumSides();
+								int numPlaneFacesThisBrsh=0;
+								int numVertFacesThisBrsh=0;
+								int vertFaceIndex=-1; // Will be the index of a vertex-based face
+								boolean[] vertFaces=new boolean[numSides]; // vertFaces[X] will be true if face X was defined by vertices
+								MAPBrushSide[] brushSides=new MAPBrushSide[numSides];
 								Entity mapBrush=new Entity("{ // Brush "+numBrshs);
 								numBrshs++;
 								for(int l=0;l<numSides;l++) { // For each side of the brush
 									Vertex[] plane=new Vertex[3]; // Three points define a plane. All I have to do is find three points on that plane.
 									BrushSide currentSide=myL16.getBrushSide(firstSide+l);
-									Face currentFace=myL9.getFace(currentSide.getFace()); // To find those three points, I can probably use vertices referenced by faces.
+									Face currentFace=myL9.getFace(currentSide.getFace()); // To find those three points, I can use vertices referenced by faces.
 									if(!myL2.getTexture(currentFace.getTexture()).equalsIgnoreCase("special/bevel")) { // If this face uses special/bevel, skip the face completely
 										int firstVertex=currentFace.getVert();
 										int numVertices=currentFace.getNumVerts();
@@ -873,78 +1078,67 @@ public class NFBSP {
 											plane[1]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh+1));
 											plane[2]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh+2));
 											numVertFaces++;
+											numVertFacesThisBrsh++;
+											vertFaces[l]=true;
+											vertFaceIndex=l;
 										} else { // Fallback to planar decompilation. Since there are no explicitly defined points anymore,
 											      // we must find them ourselves using the A, B, C and D values.
 											numPlaneFaces++;
-											// Figure out if the plane is parallel to two of the axes. If so it can be reproduced with 100% accuracy
+											numPlaneFacesThisBrsh++;
+											// Figure out if the plane is parallel to two of the axes. If so it can be reproduced easily
 											if(currentPlane.getB()==0 && currentPlane.getC()==0) { // parallel to plane YZ
 												plane[0]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
-												if(currentPlane.getA()<0) {
-													plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
-													plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 1);
-												} else {
-													plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 1);
-													plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+												plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+												plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 1);
+												if(currentPlane.getA()>0) {
+													plane=flipPlane(plane);
 												}
 											} else {
 												if(currentPlane.getA()==0 && currentPlane.getC()==0) { // parallel to plane XZ
 													plane[0]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
-													if(currentPlane.getB()<0) {
-														plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
-														plane[2]=new Vertex(1, currentPlane.getDist()/currentPlane.getB(), 0);
-													} else {
-														plane[1]=new Vertex(1, currentPlane.getDist()/currentPlane.getB(), 0);
-														plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+													plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+													plane[2]=new Vertex(1, currentPlane.getDist()/currentPlane.getB(), 0);
+													if(currentPlane.getB()>0) {
+														plane=flipPlane(plane);
 													}
 												} else {
 													if(currentPlane.getA()==0 && currentPlane.getB()==0) { // parallel to plane XY
 														plane[0]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
-														if(currentPlane.getC()<0) {
-															plane[1]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
-															plane[2]=new Vertex(0, 1, currentPlane.getDist()/currentPlane.getC());
-														} else {
-															plane[1]=new Vertex(0, 1, currentPlane.getDist()/currentPlane.getC());
-															plane[2]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+														plane[1]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+														plane[2]=new Vertex(0, 1, currentPlane.getDist()/currentPlane.getC());
+														if(currentPlane.getC()>0) {
+															plane=flipPlane(plane);
 														}
 													} else { // If you reach this point the plane is not parallel to any two-axis plane.
 														if(currentPlane.getA()==0) { // parallel to X axis
 															plane[0]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
-															if(currentPlane.getB()*currentPlane.getC()<0) {
-																plane[1]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
-																plane[2]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
-															} else {
-																plane[1]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
-																plane[2]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+															plane[1]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+															plane[2]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+															if(currentPlane.getB()*currentPlane.getC()>0) {
+																plane=flipPlane(plane);
 															}
 														} else {
 															if(currentPlane.getB()==0) { // parallel to Y axis
 																plane[0]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
-																if(currentPlane.getA()*currentPlane.getC()<0) {
-																	plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
-																	plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
-																} else {
-																	plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
-																	plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+																plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+																plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+																if(currentPlane.getA()*currentPlane.getC()>0) {
+																	plane=flipPlane(plane);
 																}
 															} else {
 																if(currentPlane.getC()==0) { // parallel to Z axis
 																	plane[0]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
-																	if(currentPlane.getA()*currentPlane.getB()<0) {
-																		plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
-																		plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
-																	} else {
-																		plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
-																		plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																	plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																	plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+																	if(currentPlane.getA()*currentPlane.getB()>0) {
+																		plane=flipPlane(plane);
 																	}
 																} else { // If you reach this point the plane is not parallel to any axis. Therefore, any two coordinates will give a third.
-																	      // TODO: find a way to make sure the plane faces the right way.
 																	plane[0]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
-																	if(currentPlane.getA()*currentPlane.getB()*currentPlane.getC()<0) {
-																		plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
-																		plane[2]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
-																	} else {
-																		plane[1]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
-																		plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																	plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																	plane[2]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+																	if(currentPlane.getA()*currentPlane.getB()*currentPlane.getC()>0) {
+																		plane=flipPlane(plane);
 																	}
 																}
 															}
@@ -952,8 +1146,7 @@ public class NFBSP {
 													}
 												}
 											}
-											System.out.println("A: "+currentPlane.getA()+" B: "+currentPlane.getB()+" C: "+currentPlane.getC()+" D: "+currentPlane.getDist()+" Type: "+currentPlane.getType());
-										} // Plane stuff
+										} // End plane stuff
 										plane[0].setX(plane[0].getX()+(float)origin[0]);
 										plane[0].setY(plane[0].getY()+(float)origin[1]);
 										plane[0].setZ(plane[0].getZ()+(float)origin[2]);
@@ -987,12 +1180,45 @@ public class NFBSP {
 										float lgtScale=16; // These values are impossible to get from a compiled map since they
 										float lgtRot=0;    // are used by RAD for generating lightmaps, then are discarded, I believe.
 										try {
-											MAPBrushSide currentEdge=new MAPBrushSide(plane, texture, textureS, textureShiftS, textureT, textureShiftT,
+											brushSides[l]=new MAPBrushSide(plane, texture, textureS, textureShiftS, textureT, textureShiftT,
 										                                          texRot, texScaleX, texScaleY, flags, material, lgtScale, lgtRot);
-											mapBrush.addAttribute(currentEdge.toString());
 										} catch(InvalidMAPBrushSideException e) {
 											System.out.println("Error creating brush side "+l+" on brush "+k+" in leaf "+j+" in model "+i+", side not written.");
 										}
+									}
+								}
+								// FOR DETERMINING PLANE FLIP
+								// To figure out the correct flip for the plane, I use two facts about BSP brushes
+								// 1. They are always convex, therefore a point on one of the faces will be on the negative side of every other plane in the brush
+								// 2. The positive side of every plane in a brush must face outwards, and the positive side is the side with the face
+								// Limitation: There must be at least one face which was defined by vertices.
+								/*if(numVertFacesThisBrsh>0) { // If there was a face defined by vertices, if not just move on
+									Vertex[] points=brushSides[vertFaceIndex].getPlane();
+									// Find the point in the middle of these three points. It'll be on the plane.
+									Vertex temp=new Vertex(points[0].getX()+(points[0].getX()-points[1].getX())/-2, points[0].getY()+(points[0].getY()-points[1].getY())/-2, points[0].getZ()+(points[0].getZ()-points[1].getZ())/-2);
+									Vertex point=new Vertex(temp.getX()+(temp.getX()-points[2].getX())/-2, temp.getY()+(temp.getY()-points[2].getY())/-2, temp.getZ()+(temp.getZ()-points[2].getZ())/-2);
+									for(int l=0;l<numSides;l++) { // For each side, AFTER the entire MAPBrushSide list has been populated
+										if(!vertFaces[l] && l!=vertFaceIndex) { // If the current face was not defined by vertices
+											BrushSide currentSide=myL16.getBrushSide(firstSide+l);
+											Face currentFace=myL9.getFace(currentSide.getFace());
+											if(!myL2.getTexture(currentFace.getTexture()).equalsIgnoreCase("special/bevel")) { // If this face uses special/bevel, skip the face completely
+												Plane currentPlane=newPlanes.getPlane(currentSide.getPlane());
+												// Formula for the signed distance from a plane to a point, I hope to jesus this works
+												// Source: http://mathworld.wolfram.com/Point-PlaneDistance.html
+												double signedDist=(currentPlane.getA()*point.getX()+currentPlane.getB()*point.getY()+currentPlane.getC()*point.getZ()-currentPlane.getDist())/(Math.sqrt(Math.pow(currentPlane.getA(),2)+Math.pow(currentPlane.getB(),2)+Math.pow(currentPlane.getC(),2)));
+												if(signedDist>0) { // This > may need to be flipped, I don't know yet
+													brushSides[l].flipPlane();
+												}
+											}
+										}
+									}
+								}*/
+								
+								for(int l=0;l<numSides;l++) { // For each side, AFTER the entire MAPBrushSide list has been populated and plane flip is sorted out
+									try {
+										mapBrush.addAttribute(brushSides[l].toString()); // Add the MAPBrushSide to the current brush as an attribute
+									} catch(java.lang.NullPointerException e) { // If the object was never created, because the face was special/bevel
+										; // Do nothing, it doesn't matter
 									}
 								}
 								mapBrush.addAttribute("}");
@@ -1000,25 +1226,88 @@ public class NFBSP {
 								                                                        // adds the brush we've been finding and creating to
 								                                                        // entity i as an attribute. The way I've coded this
 								                                                        // whole program and the entities parser, this shouldn't
-								                                                        // cause any issues at all.
+							                                                           // cause any issues at all.
 							}
 						}
 					}
 				}
 				mapFile.getEntity(i).deleteAttribute("model");
-				if(origin[0]!=0 && origin[1]!=0 && origin[2]!=0) {
-					System.out.println("Offset "+mapFile.getEntity(i).getAttribute("classname")+" entity by ("+origin[0]+", "+origin[1]+", "+origin[2]+")");
-				}
-				for(int n=0;n<usedPlanes.length;n++) {
-					if(usedPlanes[n]>0) {
-						System.out.println("Plane "+n+" used "+usedPlanes[n]+" times, type "+newPlanes.getPlane(n).getType());
+				// Recreate origin brushes for entities that need them
+				// These are discarded on compile and replaced with an "origin" attribute in the entity.
+				// I need to undo that. For this I will create a 32x32 brush, centered at the point defined
+				// by the "origin" attribute.
+				if(origin[0]!=0 || origin[1]!=0 || origin[2]!=0) { // If this brush uses the "origin" attribute
+					Entity newOriginBrush=new Entity("{ // Brush "+numBrshs);
+					numBrshs++;
+					numOriginBrushes++;
+					Vertex[][] planes=new Vertex[6][3]; // Six planes for a cube brush, three vertices for each plane
+					float[][] textureS=new float[6][3];
+					float[][] textureT=new float[6][3];
+					// The planes and their texture scales
+					// I got these from an origin brush created by Gearcraft. Don't worry where these numbers came from, they work.
+					// Top
+					planes[0][0]=new Vertex((float)(-16+origin[0]), (float)(16+origin[1]), (float)(16+origin[2]));
+					planes[0][1]=new Vertex((float)(16+origin[0]), (float)(16+origin[1]), (float)(16+origin[2]));
+					planes[0][2]=new Vertex((float)(16+origin[0]), (float)(-16+origin[1]), (float)(16+origin[2]));
+					textureS[0][0]=1;
+					textureT[0][1]=-1;
+					// Bottom
+					planes[1][0]=new Vertex((float)(-16+origin[0]), (float)(-16+origin[1]), (float)(-16+origin[2]));
+					planes[1][1]=new Vertex((float)(16+origin[0]), (float)(-16+origin[1]), (float)(-16+origin[2]));
+					planes[1][2]=new Vertex((float)(16+origin[0]), (float)(16+origin[1]), (float)(-16+origin[2]));
+					textureS[1][0]=1;
+					textureT[1][1]=-1;
+					// Left
+					planes[2][0]=new Vertex((float)(-16+origin[0]), (float)(16+origin[1]), (float)(16+origin[2]));
+					planes[2][1]=new Vertex((float)(-16+origin[0]), (float)(-16+origin[1]), (float)(16+origin[2]));
+					planes[2][2]=new Vertex((float)(-16+origin[0]), (float)(-16+origin[1]), (float)(-16+origin[2]));
+					textureS[2][1]=1;
+					textureT[2][2]=-1;
+					// Right
+					planes[3][0]=new Vertex((float)(16+origin[0]), (float)(16+origin[1]), (float)(-16+origin[2]));
+					planes[3][1]=new Vertex((float)(16+origin[0]), (float)(-16+origin[1]), (float)(-16+origin[2]));
+					planes[3][2]=new Vertex((float)(16+origin[0]), (float)(-16+origin[1]), (float)(16+origin[2]));
+					textureS[3][1]=1;
+					textureT[3][2]=-1;
+					// Near
+					planes[4][0]=new Vertex((float)(16+origin[0]), (float)(16+origin[1]), (float)(16+origin[2]));
+					planes[4][1]=new Vertex((float)(-16+origin[0]), (float)(16+origin[1]), (float)(16+origin[2]));
+					planes[4][2]=new Vertex((float)(-16+origin[0]), (float)(16+origin[1]), (float)(-16+origin[2]));
+					textureS[4][0]=1;
+					textureT[4][2]=-1;
+					// Far
+					planes[5][0]=new Vertex((float)(16+origin[0]), (float)(-16+origin[1]), (float)(-16+origin[2]));
+					planes[5][1]=new Vertex((float)(-16+origin[0]), (float)(-16+origin[1]), (float)(-16+origin[2]));
+					planes[5][2]=new Vertex((float)(-16+origin[0]), (float)(-16+origin[1]), (float)(16+origin[2]));
+					textureS[5][0]=1;
+					textureT[5][2]=-1;
+					
+					for(int j=0;j<6;j++) {
+						try {
+							MAPBrushSide currentEdge=new MAPBrushSide(planes[j], "special/origin", textureS[j], 0, textureT[j], 0, 0, 1, 1, 0, "wld_lightmap", 16, 0);
+							newOriginBrush.addAttribute(currentEdge.toString());
+						} catch(InvalidMAPBrushSideException e) {
+							// This message will never be displayed.
+							System.out.println("Bad origin brush, there's something wrong with the code.");
+						}
 					}
+					newOriginBrush.addAttribute("}");
+					mapFile.getEntity(i).addAttribute(newOriginBrush.toString());
 				}
+				mapFile.getEntity(i).deleteAttribute("origin");
 			}
 		}
-		System.out.println(numVertFaces+" faces reconstructed from vertices\n"+numPlaneFaces+" faces interpolated from planes");
+		System.out.println(numVertFaces+" faces constructed from vertices\n"+numPlaneFaces+" faces derived from planes\n"+numOriginBrushes+" origin brushes created");
 		System.out.println("Saving .map...");
 		mapFile.save(path);
+		r.gc(); // Collect garbage, there will be a lot of it
+	}
+	
+	// -flipPlane(Vertex[])
+	// Takes a plane as an array of vertices and flips it over.
+	private Vertex[] flipPlane(Vertex[] in) {
+		Vertex[] out={in[0], in[2], in[1]};
+		return out;
 	}
 	
 	// ACCESSORS/MUTATORS
