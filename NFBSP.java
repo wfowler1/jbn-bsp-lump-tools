@@ -35,7 +35,6 @@
 // and have THEIR own bounding boxes. How do these relate and interact, if at all?
 
 import java.io.File;
-import java.util.Date;
 
 public class NFBSP {
 
@@ -47,7 +46,8 @@ public class NFBSP {
 												 // but since Java has no way explicitly reallocate
 												 // unused memory I have to tell it when a good
 												 // time is to run the garbage collector, by
-												 // calling gc().
+												 // calling gc(). Also, it is used to execute EXEs
+												 // from within the program by calling .exec(path).
 
 	// All lumps will be in the same folder. This String IS that folder.
 	private String filepath;
@@ -107,9 +107,9 @@ public class NFBSP {
 	public int[] lumpDataSizes = {-1, 20, 64, 64, 12, -1, 4, 0, 36, 48, 3, 48, 4, 4, 56, 12, 8, 32};
 	
 	private boolean modified=false; // Every method in this class that modifies the data in RAM
-	                        // will set this to true. If something else sets up an NFBSP
-									// object then modifies the lumps directly through accessors
-									// then this boolean will not change.
+	                                // will set this to true. If something else sets up an NFBSP
+	                                // object then modifies the lumps directly through accessors
+	                                // then this boolean will not change.
 	
 	// CONSTRUCTORS
 	// This accepts a file path and parses it into the form needed. If the file is empty (or not found)
@@ -236,33 +236,17 @@ public class NFBSP {
 	public void optimizeEntities() {
 		int numEnts=myL0.getNumElements();
 		for(int i=0;i<numEnts;i++) {
-			try { // Each one of these must be within its own try/catch block. Otherwise, if the first attribute doesn't exist, it won't check for any of the other ones.
-				if(myL0.getEntity(i).getAttribute("origin").equals("0 0 0")) {
-					myL0.getEntity(i).deleteAttribute("origin");
-				}
-			} catch(AttributeNotFoundException e) { // The entitiy has no origin attribute
-				;
+			if(myL0.getEntity(i).getAttribute("origin").equals("0 0 0")) {
+				myL0.getEntity(i).deleteAttribute("origin");
 			}
-			try {
-				if(myL0.getEntity(i).getAttribute("angles").equals("0 0 0")) {
-					myL0.getEntity(i).deleteAttribute("angles");
-				}
-			} catch(AttributeNotFoundException e) { // The entitiy has no angles attribute
-				;
+			if(myL0.getEntity(i).getAttribute("angles").equals("0 0 0")) {
+				myL0.getEntity(i).deleteAttribute("angles");
 			}
-			try {
-				if(myL0.getEntity(i).getAttribute("classname").equals("multi_manager")) {
-					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map, or defined as being anywhere really.
-				}
-			} catch(AttributeNotFoundException e) {
-				;
+			if(myL0.getEntity(i).getAttribute("classname").equals("multi_manager")) {
+				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map, or defined as being anywhere really.
 			}
-			try {
-				if(myL0.getEntity(i).getAttribute("classname").equals("env_fade")) {
-					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map, or defined as being anywhere really.
-				}
-			} catch(AttributeNotFoundException e) {
-				;
+			if(myL0.getEntity(i).getAttribute("classname").equals("env_fade")) {
+				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map, or defined as being anywhere really.
 			}
 			myL0.getEntity(i).deleteAttribute("sequencename");
 		}
@@ -595,8 +579,6 @@ public class NFBSP {
 	// TODO: Finish moving the add(Lump) methods into this class. It simplifies
 	// things a lot. Just make them return a new lump## object.
 	// TODO: Figure out why lighting gets fucked up in the process
-	// though, if the nodes on the source maps are on the wrong side of the 
-	// plane, they probably won't show up at all.
 	// TODO: Move all world faces and world leaves together in their lumps
 	// and make sure model #0 references all of them. This will be a toughie.
 	public void combineBSP(NFBSP other) {
@@ -822,12 +804,221 @@ public class NFBSP {
 	// +decompile()
 	// Attempts to convert the BSP file back into a .MAP file.
 	// This is tough for two reasons:
-	// 1. MAP files are pure ASCII, and Strings are tough to deal with
-	// 2. Many times a leaf will reference several brushes at a time, and I don't
-	//    know why or how to deal with it.
-	public static void decompile() {
-		// Begin by converting all brushes into structures defined by their sides
-		
+	// 1. Models reference all solids via leafs, which reference brushes through
+	//    that stupid mark brushes lump.
+	// 2. Many times a leaf will reference several brushes at a time, or none at
+	//    all, and I don't know why or how to deal with it.
+	// Therefore, I have to make guesses about what to do in these cases. I just
+	// hope I'm right.
+	//
+	// This is another one of the most complex things I've ever had to code. I've
+	// never nested for loops four deep before.
+	// Iterators:
+	// i: Current entity in the list
+	// j: Current leaf, referenced in a list by the model referenced by the current entity
+	// k: Current brush, referenced in a list by the current leaf.
+	// l: Current side of the current brush.
+	public void decompile(String path) {
+		// Begin by copying all the entities into another Lump00 object. This is
+		// necessary because if I just modified the current entity list then it
+		// could be saved back into the BSP and really fuck some shit up.
+		Lump00 mapFile=new Lump00(myL0);
+		// Then I need to go through each entity and see if it's brush-based.
+		// Worldspawn is brush-based as well as any entity with model *#.
+		int numVertFaces=0;
+		int numPlaneFaces=0;
+		for(int i=0;i<mapFile.getNumElements();i++) { // For each entity
+			int currentModel=-1;
+			if(mapFile.getEntity(i).isBrushBased()) {
+				currentModel=myL0.getEntity(i).getModelNumber();
+			} else {
+				if(mapFile.getEntity(i).getAttribute("classname").equalsIgnoreCase("worldspawn")) {
+					currentModel=0; // If the entity is worldspawn, we're dealing with model 0, which is the world.
+				}
+			}
+			if(currentModel!=-1) { // If this is still -1 then it's strictly a point-based entity. Move on to the next one.
+				double[] origin=mapFile.getEntity(i).getOrigin();
+				int[] usedPlanes=new int[myL1.getNumElements()];
+				Lump01 newPlanes=new Lump01(myL1);
+				int firstLeaf=myL14.getModel(currentModel).getLeaf();
+				int numLeaves=myL14.getModel(currentModel).getNumLeafs();
+				boolean[] brushesUsed=new boolean[myL15.getNumElements()]; // Keep a list of brushes already in the model, since sometimes the leaves lump references one brush several times
+				int numBrshs=0;
+				for(int j=0;j<numLeaves;j++) { // For each leaf in the bunch
+					int firstBrushIndex=myL11.getLeaf(j+firstLeaf).getMarkBrush();
+					int numBrushIndices=myL11.getLeaf(j+firstLeaf).getNumMarkBrushes();
+					if(numBrushIndices>0) { // A lot of leaves reference no brushes. If this is one, this iteration of the j loop is finished
+						for(int k=0;k<numBrushIndices;k++) { // For each brush referenced
+							if(!brushesUsed[myL13.getMarkBrush(firstBrushIndex+k)]) {
+								brushesUsed[myL13.getMarkBrush(firstBrushIndex+k)]=true;
+								Brush currentBrush=myL15.getBrush(myL13.getMarkBrush(firstBrushIndex+k)); // Get a handle to the brush
+								int firstSide=currentBrush.getFirstSide();
+								int numSides=currentBrush.getNumSides();
+								Entity mapBrush=new Entity("{ // Brush "+numBrshs);
+								numBrshs++;
+								for(int l=0;l<numSides;l++) { // For each side of the brush
+									Vertex[] plane=new Vertex[3]; // Three points define a plane. All I have to do is find three points on that plane.
+									BrushSide currentSide=myL16.getBrushSide(firstSide+l);
+									Face currentFace=myL9.getFace(currentSide.getFace()); // To find those three points, I can probably use vertices referenced by faces.
+									if(!myL2.getTexture(currentFace.getTexture()).equalsIgnoreCase("special/bevel")) { // If this face uses special/bevel, skip the face completely
+										int firstVertex=currentFace.getVert();
+										int numVertices=currentFace.getNumVerts();
+										usedPlanes[currentSide.getPlane()]++;
+										Plane currentPlane=newPlanes.getPlane(currentSide.getPlane());
+										if(numVertices!=0) { // If the face actually references a set of vertices
+											int firstMesh=currentFace.getMeshs(); // I don't need to know how many meshes there are, I'll just use the first three, since
+											                                      // they are read in threes by the engine. One could argue these will always be (0, 1, 2)
+											                                      // but I don't want to depend on data being something that it could possibly not be.
+											plane[0]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh));
+											plane[1]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh+1));
+											plane[2]=myL4.getVertex(firstVertex+myL6.getMesh(firstMesh+2));
+											numVertFaces++;
+										} else { // Fallback to planar decompilation. Since there are no explicitly defined points anymore,
+											      // we must find them ourselves using the A, B, C and D values.
+											numPlaneFaces++;
+											// Figure out if the plane is parallel to two of the axes. If so it can be reproduced with 100% accuracy
+											if(currentPlane.getB()==0 && currentPlane.getC()==0) { // parallel to plane YZ
+												plane[0]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+												if(currentPlane.getA()<0) {
+													plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+													plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 1);
+												} else {
+													plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 1);
+													plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+												}
+											} else {
+												if(currentPlane.getA()==0 && currentPlane.getC()==0) { // parallel to plane XZ
+													plane[0]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+													if(currentPlane.getB()<0) {
+														plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+														plane[2]=new Vertex(1, currentPlane.getDist()/currentPlane.getB(), 0);
+													} else {
+														plane[1]=new Vertex(1, currentPlane.getDist()/currentPlane.getB(), 0);
+														plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+													}
+												} else {
+													if(currentPlane.getA()==0 && currentPlane.getB()==0) { // parallel to plane XY
+														plane[0]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+														if(currentPlane.getC()<0) {
+															plane[1]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+															plane[2]=new Vertex(0, 1, currentPlane.getDist()/currentPlane.getC());
+														} else {
+															plane[1]=new Vertex(0, 1, currentPlane.getDist()/currentPlane.getC());
+															plane[2]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+														}
+													} else { // If you reach this point the plane is not parallel to any two-axis plane.
+														if(currentPlane.getA()==0) { // parallel to X axis
+															plane[0]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+															if(currentPlane.getB()*currentPlane.getC()<0) {
+																plane[1]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+																plane[2]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+															} else {
+																plane[1]=new Vertex(1, 0, currentPlane.getDist()/currentPlane.getC());
+																plane[2]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+															}
+														} else {
+															if(currentPlane.getB()==0) { // parallel to Y axis
+																plane[0]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+																if(currentPlane.getA()*currentPlane.getC()<0) {
+																	plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+																	plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+																} else {
+																	plane[1]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 1, 0);
+																	plane[2]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+																}
+															} else {
+																if(currentPlane.getC()==0) { // parallel to Z axis
+																	plane[0]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+																	if(currentPlane.getA()*currentPlane.getB()<0) {
+																		plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																		plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+																	} else {
+																		plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 1);
+																		plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																	}
+																} else { // If you reach this point the plane is not parallel to any axis. Therefore, any two coordinates will give a third.
+																	      // TODO: find a way to make sure the plane faces the right way.
+																	plane[0]=new Vertex(currentPlane.getDist()/currentPlane.getA(), 0, 0);
+																	if(currentPlane.getA()*currentPlane.getB()*currentPlane.getC()<0) {
+																		plane[1]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																		plane[2]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+																	} else {
+																		plane[1]=new Vertex(0, 0, currentPlane.getDist()/currentPlane.getC());
+																		plane[2]=new Vertex(0, currentPlane.getDist()/currentPlane.getB(), 0);
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+											System.out.println("A: "+currentPlane.getA()+" B: "+currentPlane.getB()+" C: "+currentPlane.getC()+" D: "+currentPlane.getDist()+" Type: "+currentPlane.getType());
+										} // Plane stuff
+										plane[0].setX(plane[0].getX()+(float)origin[0]);
+										plane[0].setY(plane[0].getY()+(float)origin[1]);
+										plane[0].setZ(plane[0].getZ()+(float)origin[2]);
+										plane[1].setX(plane[1].getX()+(float)origin[0]);
+										plane[1].setY(plane[1].getY()+(float)origin[1]);
+										plane[1].setZ(plane[1].getZ()+(float)origin[2]);
+										plane[2].setX(plane[2].getX()+(float)origin[0]);
+										plane[2].setY(plane[2].getY()+(float)origin[1]);
+										plane[2].setZ(plane[2].getZ()+(float)origin[2]);
+										String texture=myL2.getTexture(currentFace.getTexture());
+										float[] textureS=new float[3];
+										float[] textureT=new float[3];
+										TexMatrix currentTexMatrix=myL17.getTexMatrix(currentFace.getTexStyle());
+										// Get the lengths of the axis vectors
+										double UAxisLength=Math.sqrt(Math.pow(currentTexMatrix.getUAxisX(),2)+Math.pow(currentTexMatrix.getUAxisY(),2)+Math.pow(currentTexMatrix.getUAxisZ(),2));
+										double VAxisLength=Math.sqrt(Math.pow(currentTexMatrix.getVAxisX(),2)+Math.pow(currentTexMatrix.getVAxisY(),2)+Math.pow(currentTexMatrix.getVAxisZ(),2));
+										// In compiled maps, shorter vectors=longer textures and vice versa. This will convert their lengths back to 1. We'll use the actual scale values for length.
+										textureS[0]=(float)(currentTexMatrix.getUAxisX()/UAxisLength);
+										textureS[1]=(float)(currentTexMatrix.getUAxisY()/UAxisLength);
+										textureS[2]=(float)(currentTexMatrix.getUAxisZ()/UAxisLength);
+										float textureShiftS=currentTexMatrix.getUShift();
+										textureT[0]=(float)(currentTexMatrix.getVAxisX()/VAxisLength);
+										textureT[1]=(float)(currentTexMatrix.getVAxisY()/VAxisLength);
+										textureT[2]=(float)(currentTexMatrix.getVAxisZ()/VAxisLength);
+										float textureShiftT=currentTexMatrix.getVShift();
+										float texRot=0; // In compiled maps this is calculated into the U and V axes, so set it to 0 until I can figure out a good way to determine a better value.
+										float texScaleX=(float)(1/UAxisLength);// Let's use these values using the lengths of the U and V axes we found above.
+										float texScaleY=(float)(1/VAxisLength);
+										int flags=currentFace.getType(); // This is actually a set of flags. Whatever.
+										String material=myL3.getMaterial(currentFace.getMaterial());
+										float lgtScale=16; // These values are impossible to get from a compiled map since they
+										float lgtRot=0;    // are used by RAD for generating lightmaps, then are discarded, I believe.
+										try {
+											MAPBrushSide currentEdge=new MAPBrushSide(plane, texture, textureS, textureShiftS, textureT, textureShiftT,
+										                                          texRot, texScaleX, texScaleY, flags, material, lgtScale, lgtRot);
+											mapBrush.addAttribute(currentEdge.toString());
+										} catch(InvalidMAPBrushSideException e) {
+											System.out.println("Error creating brush side "+l+" on brush "+k+" in leaf "+j+" in model "+i+", side not written.");
+										}
+									}
+								}
+								mapBrush.addAttribute("}");
+								mapFile.getEntity(i).addAttribute(mapBrush.toString()); // Remember entity i? It's the current entity. This
+								                                                        // adds the brush we've been finding and creating to
+								                                                        // entity i as an attribute. The way I've coded this
+								                                                        // whole program and the entities parser, this shouldn't
+								                                                        // cause any issues at all.
+							}
+						}
+					}
+				}
+				mapFile.getEntity(i).deleteAttribute("model");
+				if(origin[0]!=0 && origin[1]!=0 && origin[2]!=0) {
+					System.out.println("Offset "+mapFile.getEntity(i).getAttribute("classname")+" entity by ("+origin[0]+", "+origin[1]+", "+origin[2]+")");
+				}
+				for(int n=0;n<usedPlanes.length;n++) {
+					if(usedPlanes[n]>0) {
+						System.out.println("Plane "+n+" used "+usedPlanes[n]+" times, type "+newPlanes.getPlane(n).getType());
+					}
+				}
+			}
+		}
+		System.out.println(numVertFaces+" faces reconstructed from vertices\n"+numPlaneFaces+" faces interpolated from planes");
+		System.out.println("Saving .map...");
+		mapFile.save(path);
 	}
 	
 	// ACCESSORS/MUTATORS

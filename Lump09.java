@@ -229,7 +229,7 @@ public class Lump09 {
 		return numWF;
 	}
 	
-	public int getNumModelFaces() throws java.io.FileNotFoundException, java.io.IOException {
+	public int getNumModelFaces() {
 		return numModelFaces;
 	}
 	

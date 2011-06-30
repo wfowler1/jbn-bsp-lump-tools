@@ -3,8 +3,8 @@
 // This class handles and maintains an array of entities
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.File;
-import java.io.PrintWriter;
 import java.util.Scanner;
 
 public class Lump00 {
@@ -45,6 +45,15 @@ public class Lump00 {
 		}
 	}
 	
+	// This one accepts a Lump00 and copies it
+	public Lump00(Lump00 in) {
+		entities=new Entity[in.getNumElements()];
+		numEnts=entities.length;
+		for(int i=0;i<numEnts;i++) {
+			entities[i]=new Entity(in.getEntity(i).toString());
+		}
+	}
+	
 	// METHODS
 	
 	// -populateEntityList()
@@ -54,6 +63,7 @@ public class Lump00 {
 	// Entity class, look there to see how deep the nested loops really go.
 	// Even so, this method is a complete mess, so documentation is provided
 	// whenever possible.
+	// TODO: Rewrite this, try to make it faster.
 	private void populateEntityList() throws java.io.FileNotFoundException, java.io.IOException {
 		System.out.println("Populating entity list...");
 		// I'd love to use Scanner here, but Scanner doesn't like using delimiters
@@ -190,24 +200,16 @@ public class Lump00 {
 		int[] indices;
 		int num=0;
 		for(int i=0;i<numEnts;i++) {
-			try {
-				if(entities[i].getAttribute(attribute).equalsIgnoreCase(value)) {
-					num++;
-				}
-			} catch(AttributeNotFoundException e) {
-				;
+			if(entities[i].getAttribute(attribute).equalsIgnoreCase(value)) {
+				num++;
 			}
 		}
 		indices=new int[num];
 		int current=0;
 		for(int i=0;i<numEnts && current<num;i++) {
-			try {
-				if(entities[i].getAttribute(attribute).equalsIgnoreCase(value)) {
-					indices[current]=i;
-					current++;
-				}
-			} catch(AttributeNotFoundException e) {
-				;
+			if(entities[i].getAttribute(attribute).equalsIgnoreCase(value)) {
+				indices[current]=i;
+				current++;
 			}
 		}
 		return indices;
@@ -215,10 +217,16 @@ public class Lump00 {
 	
 	// Save(String)
 	// Saves the lump to the specified path.
-	// This method is fast enough for the entities lump, but generally speaking, handling
-	// file I/O with Strings is a bad idea.
+	// Handling file I/O with Strings is generally a bad idea. If you have maybe a couple hundred
+	// Strings to write then it'll probably be okay, but when you have on the order of 10,000 Strings
+	// it gets VERY slow, even if you concatenate them all before writing.
 	public void save(String path) {
-		File newFile=new File(path+"\\00 - Entities.txt");
+		File newFile;
+		if(path.substring(path.length()-4).equals(".map")) {
+			newFile=new File(path);
+		} else {
+			newFile=new File(path+"\\00 - Entities.txt");
+		}
 		try {
 			if(!newFile.exists()) {
 				newFile.createNewFile();
@@ -226,16 +234,36 @@ public class Lump00 {
 				newFile.delete();
 				newFile.createNewFile();
 			}
+			System.out.println("File created, writing...");
 			
-			PrintWriter entityWriter=new PrintWriter(newFile);
+			// PrintWriter entityWriter=new PrintWriter(newFile);
+			FileOutputStream entityWriter=new FileOutputStream(newFile);
 			for(int i=0;i<numEnts;i++) {
-				entityWriter.print(entities[i].getEntity()+"\n");
+				byte[] temp;
+				if(!path.substring(path.length()-4).equals(".map")) {
+					temp=new byte[2];
+					temp[0]=(byte)'{';
+					temp[1]=(byte)0x0A;
+				} else {
+					String tempString="{ // Entity "+i+"\n";
+					temp=tempString.getBytes();
+				}
+				entityWriter.write(temp);
+				entityWriter.write(entities[i].toByteArray());
+				byte [] temp2=new byte[2];
+				temp2[0]=(byte)'}';
+				temp2[1]=(byte)0x0A;
+				entityWriter.write(temp2);
 			}
-			entityWriter.print((char)0x00+""); // The entities lump always ends with a 00 byte,
-			                                   // otherwise the game engine could start reading into
-														  // the next lump, looking for another entity. It's
-														  // kind of stupid that way, since lump sizes are
-														  // clearly defined in the BSP header.
+			if(!path.substring(path.length()-4).equals(".map")) {
+				byte[] temp=new byte[1];
+				temp[0]=(byte)0x00;
+				entityWriter.write(temp); // The entities lump always ends with a 00 byte,
+				                          // otherwise the game engine could start reading into
+				                          // the next lump, looking for another entity. It's
+				                          // kind of stupid that way, since lump sizes are
+				                          // clearly defined in the BSP header.
+			}
 			entityWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");

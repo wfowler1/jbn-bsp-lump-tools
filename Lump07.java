@@ -156,7 +156,11 @@ public class Lump07 {
 	// Returns the number of visibility groups, or PVSes.
 	public int getNumElements() {
 		if(numPVS==-1) {
-			return (int)data.length()/lengthOfData;
+			try {
+				return (int)data.length()/lengthOfData;
+			} catch(java.lang.ArithmeticException e) {
+				return 0;
+			}
 		} else {
 			return numPVS;
 		}

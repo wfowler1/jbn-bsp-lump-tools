@@ -24,10 +24,9 @@ public class MAPBrushSide {
 	
 	// CONSTRUCTORS
 	public MAPBrushSide(Vertex[] inPlane, String inTexture, float[] inTextureS, float inTextureShiftS, float[] inTextureT, float inTextureShiftT, float inTexRot,
-	                    float inTexScaleX, float inTexScaleY, int inFlags, String inMaterial, float inLgtScale, float inLgtRot) {
-		if(inPlane.length!=3 || inTextureS.length!=3 || inTextureT!=3) {
-			// TODO: Write an exception for this
-			throw new Exception();
+	                    float inTexScaleX, float inTexScaleY, int inFlags, String inMaterial, float inLgtScale, float inLgtRot) throws InvalidMAPBrushSideException {
+		if(inPlane.length!=3 || inTextureS.length!=3 || inTextureT.length!=3) {
+			throw new InvalidMAPBrushSideException();
 		}
 		plane=inPlane;
 		texture=inTexture;
@@ -39,12 +38,28 @@ public class MAPBrushSide {
 		texScaleX=inTexScaleX;
 		texScaleY=inTexScaleY;
 		flags=inFlags;
-		materiaa=inMaterial;
+		material=inMaterial;
 		lgtScale=inLgtScale;
 		lgtRot=inLgtRot;
 	}
 	
 	// METHODS
+	
+	// toString()
+	// Returns the brush side exactly as it would look in a .MAP file.
+	// This is on multiple lines simply for readability. the returned
+	// String will have no line breaks.
+	public String toString() {
+		return "( "+plane[0].getX()+" "+plane[0].getY()+" "+plane[0].getZ()+" ) "+
+		       "( "+plane[1].getX()+" "+plane[1].getY()+" "+plane[1].getZ()+" ) "+
+		       "( "+plane[2].getX()+" "+plane[2].getY()+" "+plane[2].getZ()+" ) "+
+		       texture + 
+		       " [ "+textureS[X]+" "+textureS[Y]+" "+textureS[Z]+" "+textureShiftS+" ]"+
+		       " [ "+textureT[X]+" "+textureT[Y]+" "+textureT[Z]+" "+textureShiftT+" ] "+
+		       texRot+" "+texScaleX+" "+texScaleY+" "+flags+" "+
+		       material +
+		       " [ "+lgtScale+" "+lgtRot+" ]";
+	}
 	
 	// ACCESSORS/MUTATORS
 }

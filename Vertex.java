@@ -73,4 +73,12 @@ public class Vertex {
 	public void setZ(float in) {
 		vertex[Z]=in;
 	}
+	
+	public void setVertex(float[] in) throws InvalidVertexException {
+		if(in.length!=3) {
+			throw new InvalidVertexException();
+		} else {
+			vertex=in;
+		}
+	}
 }
