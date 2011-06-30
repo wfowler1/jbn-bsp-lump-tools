@@ -61,4 +61,16 @@ public class Vertex {
 	public float[] getVertex() {
 		return vertex;
 	}
+	
+	public void setX(float in) {
+		vertex[X]=in;
+	}
+	
+	public void setY(float in) {
+		vertex[Y]=in;
+	}
+	
+	public void setZ(float in) {
+		vertex[Z]=in;
+	}
 }

@@ -45,9 +45,26 @@ public class Leaf {
 		numLeafBrush=inNumLeafBrush;
 	}
 	
+	public Leaf(int inType, int inPVS, float[] inMins, float[] inMaxs, int inLeafFace, int inNumLeafFace, int inLeafBrush, int inNumLeafBrush) throws InvalidLeafException {
+		if(inMins.length!=3 || inMaxs.length!=3) {
+			throw new InvalidLeafException();
+		}
+		type=inType;
+		PVS=inPVS;
+		mins=inMins;
+		maxs=inMaxs;
+		leafFace=inLeafFace;
+		numLeafFace=inNumLeafFace;
+		leafBrush=inLeafBrush;
+		numLeafBrush=inNumLeafBrush;
+	}
+	
 	// This constructor takes 48 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Leaf(byte[] in) {
+	public Leaf(byte[] in) throws InvalidLeafException {
+		if(in.length!=48) {
+			throw new InvalidLeafException();
+		}
 		type=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		PVS=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 		int myInt=(in[11] << 24) | ((in[10] & 0xff) << 16) | ((in[9] & 0xff) << 8) | (in[8] & 0xff);
@@ -71,4 +88,101 @@ public class Leaf {
 	// METHODS
 	
 	// ACCESSORS/MUTATORS
+	public int getType() {
+		return type;
+	}
+	
+	public void setType(int in) {
+		type=in;
+	}
+	
+	public int getPVS() {
+		return PVS;
+	}
+	
+	// This will usually be used to set PVS reference to zero, since
+	// visibility is an overwhelming clusterfuck of "what?"
+	public void setPVS(int in) {
+		PVS=in;
+	}
+	
+	public float getMinX() {
+		return mins[X];
+	}
+	
+	public void setMinX(float in) {
+		mins[X]=in;
+	}
+	
+	public float getMinY() {
+		return mins[Y];
+	}
+	
+	public void setMinY(float in) {
+		mins[Y]=in;
+	}
+	
+	public float getMinZ() {
+		return mins[Z];
+	}
+	
+	public void setMinZ(float in) {
+		mins[Z]=in;
+	}
+	
+	public float getMaxX() {
+		return maxs[X];
+	}
+	
+	public void setMaxX(float in) {
+		maxs[X]=in;
+	}
+	
+	public float getMaxY() {
+		return maxs[Y];
+	}
+	
+	public void setMaxY(float in) {
+		maxs[Y]=in;
+	}
+	
+	public float getMaxZ() {
+		return maxs[Z];
+	}
+	
+	public void setMaxZ(float in) {
+		maxs[Z]=in;
+	}
+	
+	public int getMarkSurface() {
+		return leafFace;
+	}
+	
+	public void setMarkSurface(int in) {
+		leafFace=in;
+	}
+	
+	public int getNumMarkSurfaces() {
+		return numLeafFace;
+	}
+	
+	public void setNumMarkSurfaces(int in) {
+		numLeafFace=in;
+	}
+	
+	public int getMarkBrush() {
+		return leafBrush;
+	}
+	
+	public void setMarkBrush(int in) {
+		leafBrush=in;
+	}
+	
+	public int getNumMarkBrushes() {
+		return numLeafBrush;
+	}
+	
+	public void setNumMarkBrushes(int in) {
+		numLeafBrush=in;
+	}
 }

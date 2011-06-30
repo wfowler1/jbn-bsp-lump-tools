@@ -72,13 +72,15 @@ public class Entity {
 	// +getEntity()
 	// Returns the entity as an ASCII entity structure. The output of this method
 	// reads as a complete entity that could be put into a map with no problems,
-	// and that will be the primary use case for this method.
+	// and that will be the primary use case for this method. Be sure to add the
+	// newlines around the entity if using this method to create a new entities
+	// lump file.
 	public String getEntity() {
 		String out="{\n";
 		for(int i=0;i<attributes.length;i++) {
 			out+=attributes[i]+"\n";
 		}
-		return out+"}\n";
+		return out+"}";
 	}
 	
 	// +printEntity()

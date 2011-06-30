@@ -3,6 +3,13 @@
 // Sets up the basic interface for loading a set of BSP lumps into the program.
 // Deprecate this, nobody wants a console-based program.
 
+// TODO list for code:
+// complete add() methods for all Lump classes after and including Lump12
+// create a pixel class to be used by Lump10 class
+// add accessors and mutators for all helper classes used by Lump classes after and including Lump12
+// complete save() methods for everything after and including Lump12
+// write Exception classes for invalid inputs
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -21,12 +28,12 @@ public class LumpTools {
 		// every time and only needs to be fixed once.
 		NFBSP myBSP = new NFBSP(filepath);
 
-		System.out.print("Path to other lumps folder: ");
-		String otherfilepath=keyboard.nextLine();
+		// System.out.print("Path to other lumps folder: ");
+		// String otherfilepath=keyboard.nextLine();
 		
-		NFBSP otherBSP = new NFBSP(otherfilepath);
+		// NFBSP otherBSP = new NFBSP(otherfilepath);
 		
-		myBSP.combineBSP(otherBSP);
+		// myBSP.combineBSP(otherBSP);
 		
 		System.out.print("Path to save lumps to: ");
 		myBSP.saveLumps(keyboard.nextLine());

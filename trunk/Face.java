@@ -18,6 +18,9 @@ public class Face {
 	private int unknown;
 	private int lgtStyles;
 	private int lgtMaps;
+	// where the hell is the amount of lightmaps loaded specified?
+	// There's an offset reference into L10 but no length. It may be
+	// universal for the whole map, which would be RETARDED.
 	
 	// CONSTRUCTORS
 	
@@ -39,7 +42,10 @@ public class Face {
 	
 	// This constructor takes 48 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Face(byte[] in) {
+	public Face(byte[] in) throws InvalidFaceException {
+		if(in.length!=48) {
+			throw new InvalidFaceException();
+		} // else
 		plane=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		vert=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 		numVerts=(in[11] << 24) | ((in[10] & 0xff) << 16) | ((in[9] & 0xff) << 8) | (in[8] & 0xff);
@@ -57,4 +63,100 @@ public class Face {
 	// METHODS
 	
 	// ACCESSORS/MUTATORS
+	
+	public int getPlane() {
+		return plane;
+	}
+	
+	public void setPlane(int in) {
+		plane=in;
+	}
+	
+	public int getVert() {
+		return vert;
+	}
+	
+	public void setVert(int in) {
+		vert=in;
+	}
+	
+	public int getNumVerts() {
+		return numVerts;
+	}
+	
+	public void setNumVerts(int in) {
+		numVerts=in;
+	}
+	
+	public int getMeshs() {
+		return meshs;
+	}
+	
+	public void setMeshs(int in) {
+		meshs=in;
+	}
+	
+	public int getNumMeshs() {
+		return numMeshs;
+	}
+	
+	public void setNumMeshs(int in) {
+		numMeshs=in;
+	}
+	
+	public int getType() {
+		return type;
+	}
+	
+	public void setType(int in) {
+		type=in;
+	}
+	
+	public int getTexture() {
+		return texture;
+	}
+	
+	public void setTexture(int in) {
+		texture=in;
+	}
+	
+	public int getMaterial() {
+		return material;
+	}
+	
+	public void setMaterial(int in) {
+		material=in;
+	}
+	
+	public int getTexStyle() {
+		return texStyle;
+	}
+	
+	public void setTexStyle(int in) {
+		texStyle=in;
+	}
+	
+	public int getUnknown() {
+		return unknown;
+	}
+	
+	public void setUnknown(int in) {
+		unknown=in;
+	}
+	
+	public int getLgtStyles() {
+		return lgtStyles;
+	}
+	
+	public void setLgtStyles(int in) {
+		lgtStyles=in;
+	}
+	
+	public int getLgtMaps() {
+		return lgtMaps;
+	}
+	
+	public void setLgtMaps(int in) {
+		lgtMaps=in;
+	}
 }

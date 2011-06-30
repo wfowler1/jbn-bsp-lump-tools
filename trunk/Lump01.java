@@ -5,7 +5,6 @@
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 
 public class Lump01 {
@@ -89,7 +88,6 @@ public class Lump01 {
 	
 	// Save(String)
 	// Saves the lump to the specified path.
-	// TODO: FIND A FASTER METHOD FOR DOING THIS, DataOutputStream is SLOW
 	public void save(String path) {
 		try {
 			File newFile=new File(path+"\\01 - Planes.hex");
@@ -99,19 +97,40 @@ public class Lump01 {
 				newFile.delete();
 				newFile.createNewFile();
 			}
-			FileOutputStream planeFile=new FileOutputStream(newFile);
-			DataOutputStream planeWriter=new DataOutputStream(planeFile);
+			FileOutputStream planeWriter=new FileOutputStream(newFile);
 			for(int i=0;i<numPlns;i++) {
-				planeWriter.writeFloat(planes[i].getX());
-				planeWriter.writeFloat(planes[i].getY());
-				planeWriter.writeFloat(planes[i].getZ());
-				planeWriter.writeFloat(planes[i].getDist());
-				planeWriter.writeInt(planes[i].getType());
+				// This is MUCH FASTER than using a DataOutputStream
+				int out=Float.floatToRawIntBits(planes[i].getX());
+				byte[] output={(byte)((out >> 0) & 0xFF), (byte)((out >> 8) & 0xFF), (byte)((out >> 16) & 0xFF), (byte)((out >> 24) & 0xFF)};
+				planeWriter.write(output);
+				out=Float.floatToRawIntBits(planes[i].getY());
+				output[3]=(byte)((out >> 24) & 0xFF);
+				output[2]=(byte)((out >> 16) & 0xFF);
+				output[1]=(byte)((out >> 8) & 0xFF);
+				output[0]=(byte)((out >> 0) & 0xFF);
+				planeWriter.write(output);
+				out=Float.floatToRawIntBits(planes[i].getZ());
+				output[3]=(byte)((out >> 24) & 0xFF);
+				output[2]=(byte)((out >> 16) & 0xFF);
+				output[1]=(byte)((out >> 8) & 0xFF);
+				output[0]=(byte)((out >> 0) & 0xFF);
+				planeWriter.write(output);
+				out=Float.floatToRawIntBits(planes[i].getDist());
+				output[3]=(byte)((out >> 24) & 0xFF);
+				output[2]=(byte)((out >> 16) & 0xFF);
+				output[1]=(byte)((out >> 8) & 0xFF);
+				output[0]=(byte)((out >> 0) & 0xFF);
+				planeWriter.write(output);
+				out=planes[i].getType();
+				output[3]=(byte)((out >> 24) & 0xFF);
+				output[2]=(byte)((out >> 16) & 0xFF);
+				output[1]=(byte)((out >> 8) & 0xFF);
+				output[0]=(byte)((out >> 0) & 0xFF);
+				planeWriter.write(output);
 			}
 			planeWriter.close();
-			planeFile.close();
 		} catch(java.io.IOException e) {
-			System.out.println("Unknown error saving planes, lump probably not saved!");
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
 		}
 	}
 	

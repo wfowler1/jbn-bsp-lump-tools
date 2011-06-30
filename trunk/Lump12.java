@@ -50,6 +50,58 @@ public class Lump12 {
 		reader.close();
 	}
 	
+	// +add(int)
+	// adds a single int to the list
+	public void add(int in) {
+		int[] newList=new int[numMSurfs+1];
+		for(int i=0;i<numMSurfs;i++) {
+			newList[i]=marksurfaces[i];
+		}
+		newList[numMSurfs]=in;
+		numMSurfs++;
+		marksurfaces=newList;
+	}	
+	
+	// +add(Lump12)
+	// adds every pixel from another lump12 object.
+	public void add(Lump12 in) {
+		int[] newList=new int[numMSurfs+in.getNumElements()];
+		File myLump09=new File(data.getParent()+"//09 - Faces.hex");
+		int sizeL09=(int)myLump09.length()/48;
+		for(int i=0;i<numMSurfs;i++) {
+			newList[i]=marksurfaces[i];
+		}
+		for(int i=0;i<in.getNumElements(); i++) {
+			newList[i+numMSurfs]=in.getMarkSurface(i)+sizeL09;
+		}
+		numMSurfs=numMSurfs+in.getNumElements();
+		marksurfaces=newList;
+	}
+	
+	// save(String)
+	// Saves the data to the specified path as the lump.
+	public void save(String path) {
+		try {
+			File newFile=new File(path+"\\12 - Mark Surfaces.hex");
+			if(!newFile.exists()) {
+				newFile.createNewFile();
+			} else {
+				newFile.delete();
+				newFile.createNewFile();
+			}
+			FileOutputStream mSurfaceWriter=new FileOutputStream(newFile);
+			for(int i=0;i<numMSurfs;i++) {
+				// This is MUCH faster than using DataOutputStream
+				byte[] output={(byte)((marksurfaces[i] >> 0) & 0xFF), (byte)((marksurfaces[i] >> 8) & 0xFF), (byte)((marksurfaces[i] >> 16) & 0xFF), (byte)((marksurfaces[i] >> 24) & 0xFF)};
+				mSurfaceWriter.write(output);
+			}
+			mSurfaceWriter.close();
+		} catch(java.io.IOException e) {
+			System.out.println("Unknown error saving "+data+", lump probably not saved!");
+		}
+	}
+
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
@@ -64,5 +116,17 @@ public class Lump12 {
 		} else {
 			return numMSurfs;
 		}
+	}
+	
+	public void setMarkSurface(int i, int in) {
+		marksurfaces[i]=in;
+	}
+	
+	public int getMarkSurface(int i) {
+		return marksurfaces[i];
+	}
+	
+	public int[] getMarkSurfaces() {
+		return marksurfaces;
 	}
 }
