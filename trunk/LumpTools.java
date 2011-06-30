@@ -4,6 +4,9 @@
 // Deprecate this, nobody wants a console-based program.
 
 // TODO list for code:
+// Move all BSP lump combining code to NFBSP class
+// Move lump saving code to NFBSP class, this will make saving unnecessary between steps
+// in the NFBSP class, create methods to turn ints/floats into byte arrays and vice versa, then change all the loading/saving methods to use those
 // Make sure to warn user if a lump doesn't have the proper size.
 // Code in a lump separator?
 
@@ -15,6 +18,7 @@ public class LumpTools {
 
 		System.out.print("Path to lumps folder: ");
 		String filepath=keyboard.nextLine();
+		System.out.println(filepath.substring(0,filepath.length()-2));
 		
 		// All lump analysis and manipulation is handled through the
 		// NFBSP class. That way if something is wrong once, it's wrong
@@ -28,6 +32,8 @@ public class LumpTools {
 		
 		System.out.println("\nCombining BSP data...");
 		myBSP.combineBSP(otherBSP);
+		
+		myBSP.optimizeBSP();
 		
 		System.out.print("Path to save lumps to: ");
 		String savefolder=keyboard.nextLine();

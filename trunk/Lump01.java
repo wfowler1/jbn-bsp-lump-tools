@@ -63,6 +63,23 @@ public class Lump01 {
 		reader.close();
 	}
 	
+	// delete(int)
+	// Deletes the plane at the passed index and moves all subsequent planes to
+	// a new index to compensate. This has bigger ramifications than it seems
+	// at first, since all references to planes must compensate for this change.
+	public void delete(int index) {
+		Plane[] newList=new Plane[numPlns-1];
+		for(int i=0;i<numPlns-1;i++) {
+			if(i<index) {
+				newList[i]=planes[i];
+			} else {
+				newList[i]=planes[i+1];
+			}
+		}
+		numPlns-=1;
+		planes=newList;
+	}
+	
 	// add(Plane)
 	// Adds a plane which is already a Plane object. Easiest to do.
 	public void add(Plane in) {

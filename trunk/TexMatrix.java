@@ -68,6 +68,17 @@ public class TexMatrix {
 	}
 	
 	// METHODS
+	// equals(TexMatrix)
+	// Returns true if all data in the passed texture matrix is the same as this
+	// one's, and false if not
+	public boolean equals(TexMatrix in) {
+		if(uAxis[X]==in.getUAxisX() && uAxis[Y]==in.getUAxisY() && uAxis[Z]==in.getUAxisZ() && uShift==in.getUShift() &&
+		   vAxis[X]==in.getVAxisX() && vAxis[Y]==in.getVAxisY() && vAxis[Z]==in.getVAxisZ() && vShift==in.getVShift()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 	
 	// ACCESSORS/MUTATORS
 	public float getUAxisX() {

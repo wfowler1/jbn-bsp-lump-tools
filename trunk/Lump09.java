@@ -12,6 +12,13 @@ public class Lump09 {
 	
 	private File data;
 	private int numFaces=0;
+	// There are two types of faces, world and model. The BSP compiler and the game engine
+	// fails to make the distinction, instead reading all world faces into model 0, and all
+	// model faces are read by models 1-numModels. Model 0 is the world model, dereference
+	// all the faces/leaves for it and the world disappears visually but is still physically
+	// there.
+	private int numWorldFaces=0;
+	private int numModelFaces=0;
 	private Face[] faces;
 	
 	// CONSTRUCTORS
@@ -21,6 +28,8 @@ public class Lump09 {
 		data=new File(in);
 		try {
 			numFaces=getNumElements();
+			numWorldFaces=getNumWorldFaces();
+			numModelFaces=numFaces-numWorldFaces;
 			faces=new Face[numFaces];
 			populateFaceList();
 		} catch(java.io.FileNotFoundException e) {
@@ -35,6 +44,8 @@ public class Lump09 {
 		data=in;
 		try {
 			numFaces=getNumElements();
+			numWorldFaces=getNumWorldFaces();
+			numModelFaces=numFaces-numWorldFaces;
 			faces=new Face[numFaces];
 			populateFaceList();
 		} catch(java.io.FileNotFoundException e) {
@@ -42,6 +53,12 @@ public class Lump09 {
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
 		}
+	}
+	
+	// Accepts an array of Face objects and sets the entire lump to it
+	public Lump09(Face[] in) {
+		faces=in;
+		numFaces=faces.length;
 	}
 	
 	// METHODS
@@ -81,44 +98,6 @@ public class Lump09 {
 		add(new Face(inPlane, inVert, inNumVerts, inMeshs, inNumMeshs, inType, inTexture, inMaterial, inTexStyle, inUnk, inLgtStyles, inLgtMaps));
 	}
 	
-	// add(Lump01)
-	// Adds every face in another Lump09 object.
-	public void add(Lump09 in) {
-		Face[] newList=new Face[numFaces+in.getNumElements()];
-		File myLump01=new File(data.getParent()+"//01 - Planes.hex");
-		int sizeL01=(int)myLump01.length()/20;
-		File myLump02=new File(data.getParent()+"//02 - Textures.hex");
-		int sizeL02=(int)myLump02.length()/64;
-		File myLump03=new File(data.getParent()+"//03 - Materials.hex");
-		int sizeL03=(int)myLump03.length()/64;
-		File myLump04=new File(data.getParent()+"//04 - Vertices.hex");
-		int sizeL04=(int)myLump04.length()/12;
-		File myLump06=new File(data.getParent()+"//06 - Indices.hex");
-		int sizeL06=(int)myLump06.length()/4;
-		File myLump10=new File(data.getParent()+"//10 - Lighting.hex");
-		int sizeL10=(int)myLump10.length(); // lighting is referenced by offset
-		File myLump17=new File(data.getParent()+"//17 - Texmatrix.hex");
-		int sizeL17=(int)myLump17.length()/32;
-		for(int i=0;i<numFaces;i++) {
-			newList[i]=faces[i];
-		}
-		for(int i=0;i<in.getNumElements();i++) {
-			// All of this MUST be done for every face added from the second map. Therefore,
-			// it is important (but not essential) that the user add a smaller map to a bigger
-			// one, not the other way around.
-			newList[i+numFaces]=in.getFace(i);
-			newList[i+numFaces].setPlane(newList[i+numFaces].getPlane()+sizeL01);
-			newList[i+numFaces].setVert(newList[i+numFaces].getVert()+sizeL04);
-			newList[i+numFaces].setMeshs(newList[i+numFaces].getMeshs()+sizeL06);
-			newList[i+numFaces].setTexture(newList[i+numFaces].getTexture()+sizeL02);
-			newList[i+numFaces].setMaterial(newList[i+numFaces].getMaterial()+sizeL03);
-			newList[i+numFaces].setTexStyle(newList[i+numFaces].getTexStyle()+sizeL17);
-			newList[i+numFaces].setLgtMaps(newList[i+numFaces].getLgtMaps()+sizeL10);
-		}
-		numFaces=numFaces+in.getNumElements();
-		faces=newList;
-	}
-
 	// save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
@@ -209,12 +188,6 @@ public class Lump09 {
 		}
 	}
 	
-	// save()
-	// Saves the lump, overwriting the one data was read from
-	public void save() {
-		save(data.getParent());
-	}
-	
 	// setAllToUnlit()
 	// Sets lightmap styles to 0 and lightmaps to 0, as if compiling skipped RAD.
 	// Effectively destroys lighting and makes everything fullbright.
@@ -244,6 +217,27 @@ public class Lump09 {
 		} else {
 			return numFaces;
 		}
+	}
+	
+	// The only way to separate world faces from model faces is to check lump14.
+	// One limitation: This depends on the world faces starting from face 0, as
+	// done by all compilers. This could complicate things with manually added
+	// faces.
+	public int getNumWorldFaces() throws java.io.FileNotFoundException, java.io.IOException {
+		if(numWorldFaces!=0) {
+			return numWorldFaces;
+		} // else
+		FileInputStream numWorldFaceGrabber=new FileInputStream(data.getParent()+"\\14 - Models.hex");
+		byte[] numWorldFacesAsByteArray=new byte[4];
+		numWorldFaceGrabber.skip(52);
+		numWorldFaceGrabber.read(numWorldFacesAsByteArray);
+		int numWF = numWorldFacesAsByteArray[0] + numWorldFacesAsByteArray[1]*256 + numWorldFacesAsByteArray[2]*65536 + numWorldFacesAsByteArray[3]*16777216;
+		numWorldFaceGrabber.close();
+		return numWF;
+	}
+	
+	public int getNumModelFaces() throws java.io.FileNotFoundException, java.io.IOException {
+		return numModelFaces;
 	}
 	
 	public Face getFace(int i) {

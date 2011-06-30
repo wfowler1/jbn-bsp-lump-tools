@@ -97,6 +97,21 @@ public class Lump17 {
 		numTxmatxs=numTxmatxs+in.getNumElements();
 		texturematrix=newList;
 	}
+	
+	// delete()
+	// Deletes a texture scaling matrix from the list. Faces will need to be corrected.
+	public void delete(int index) {
+		TexMatrix[] newList=new TexMatrix[numTxmatxs-1];
+		for(int i=0;i<numTxmatxs-1;i++) {
+			if(i<index) {
+				newList[i]=texturematrix[i];
+			} else {
+				newList[i]=texturematrix[i+1];
+			}
+		}
+		texturematrix=newList;
+		numTxmatxs--;
+	}
 
 	// save(String)
 	// Saves the lump to the specified path.
