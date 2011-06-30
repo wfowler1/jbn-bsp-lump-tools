@@ -112,6 +112,38 @@ public class Lump07 {
 		save(data.getParent());
 	}
 	
+	// equals(int, byte[])
+	// Checks if the passed byte array has the same data as the byte array at the passed index.
+	public boolean equals(int index, byte[] in) {
+		boolean isEqual=true;
+		for(int i=0;i<lengthOfData;i++) {
+			if(PVSes[index][i]!=in[i]) {
+				isEqual=false;
+				break;
+			}
+		}
+		return isEqual;
+	}
+	
+	// delete(int)
+	// Deletes the PVS at the passed index
+	public void delete(int index) {
+		byte[][] newList=new byte[numPVS-1][lengthOfData];
+		for(int i=0;i<numPVS-1;i++) {
+			if(i<index) {
+				for(int j=0;j<lengthOfData;j++) {
+					newList[i][j]=PVSes[i][j];
+				}
+			} else {
+				for(int j=0;j<lengthOfData;j++) {
+					newList[i][j]=PVSes[i+1][j];
+				}
+			}
+		}
+		numPVS-=1;
+		PVSes=newList;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
@@ -120,7 +152,7 @@ public class Lump07 {
 	}
 	
 	// Returns the number of visibility groups, or PVSes.
-	public int getNumElements() throws java.io.FileNotFoundException, java.io.IOException {
+	public int getNumElements() {
 		if(numPVS==-1) {
 			return (int)data.length()/lengthOfData;
 		} else {
@@ -129,20 +161,28 @@ public class Lump07 {
 	}
 	
 	// Since this lump doesn't have a set data length, we need to find it.
-	public int getLengthOfData() throws java.io.FileNotFoundException, java.io.IOException {
+	public int getLengthOfData() {
 		if(lengthOfData!=0) {
 			return lengthOfData;
 		} // else
-		FileInputStream lump07LengthGrabber=new FileInputStream(data.getParent()+"\\11 - Leaves.hex");
-		byte[] lenL07AsByteArray=new byte[4];
-		lump07LengthGrabber.skip(100);
-		lump07LengthGrabber.read(lenL07AsByteArray);
-		int lenL07 = lenL07AsByteArray[0] + lenL07AsByteArray[1]*256 + lenL07AsByteArray[2]*65536 + lenL07AsByteArray[3]*16777216;
-		lump07LengthGrabber.close();
-		if(lenL07==(int)0xFFFFFFFF) {
+		try {
+			FileInputStream lump07LengthGrabber=new FileInputStream(data.getParent()+"\\11 - Leaves.hex");
+			byte[] lenL07AsByteArray=new byte[4];
+			lump07LengthGrabber.skip(100);
+			lump07LengthGrabber.read(lenL07AsByteArray);
+			int lenL07 = lenL07AsByteArray[0] + lenL07AsByteArray[1]*256 + lenL07AsByteArray[2]*65536 + lenL07AsByteArray[3]*16777216;
+			lump07LengthGrabber.close();
+			if(lenL07==(int)0xFFFFFFFF) {
+				return 0;
+			} else {
+				return lenL07;
+			}
+		} catch(java.io.FileNotFoundException e) {
+			System.out.println("ERROR: File "+data+" not found!");
 			return 0;
-		} else {
-			return lenL07;
+		} catch(java.io.IOException e) {
+			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+			return 0;
 		}
 	}
 	

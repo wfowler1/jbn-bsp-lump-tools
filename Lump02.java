@@ -117,9 +117,9 @@ public class Lump02 {
 	}
 	
 	// Deletes a texture from the array by index
-	public void delTexture(int index) {
+	public void delete(int index) {
 		String[] newList=new String[numTxts-1];
-		for(int i=0;i<index;i++) {
+		for(int i=0;i<numTxts-1;i++) {
 			if(i<index) {
 				newList[i]=textures[i];
 			} else {

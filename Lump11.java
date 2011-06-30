@@ -13,6 +13,8 @@ public class Lump11 {
 	
 	private File data;
 	private int numLeaves=0;
+	private int numWorldLeaves=0;
+	private int numModelLeaves=numLeaves-numWorldLeaves;
 	private Leaf[] leaves;
 	
 	// CONSTRUCTORS
@@ -43,6 +45,11 @@ public class Lump11 {
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
 		}
+	}
+	
+	public Lump11(Leaf[] in) {
+		leaves=in;
+		numLeaves=leaves.length;
 	}
 	
 	// METHODS
@@ -80,34 +87,6 @@ public class Lump11 {
 	public void add(int inType, int inVis, float inMinX, float inMinY, float inMinZ, float inMaxX,
 	                float inMaxY, float inMaxZ, int inMSurf, int inNumMSurfs, int inMBrshs, int inNumMBrshs) {
 		add(new Leaf(inType, inVis, inMinX, inMinY, inMinZ, inMaxX, inMaxY, inMaxZ, inMSurf, inNumMSurfs, inMBrshs, inNumMBrshs));
-	}
-	
-	// add(Lump11)
-	// Adds every face in another Lump11 object.
-	// TODO: Put all world leaves before model leaves. These can be determined by looking
-	// at model 0 in Lump14, which is the world model. Models only reference leaves by
-	// index and amount, so leaves must be in the right places for referencing to work.
-	public void add(Lump11 in) {
-		Leaf[] newList=new Leaf[numLeaves+in.getNumElements()];
-		// TODO: determine the feasibility of actually adding visibility data. Seems
-		// impossible without completely recompiling the map
-		// File myLump07=new File(data.getParent()+"//08 - Visibility.hex");
-		// int sizeL07=(int)myLump07.length()/leaves[1].getVisibility();
-		File myLump12=new File(data.getParent()+"//12 - Mark Surfaces.hex");
-		int sizeL12=(int)myLump12.length()/4;
-		File myLump13=new File(data.getParent()+"//13 - Mark Brushes.hex");
-		int sizeL13=(int)myLump13.length()/4;
-		for(int i=0;i<numLeaves;i++) {
-			newList[i]=leaves[i];
-		}
-		for(int i=0;i<in.getNumElements();i++) {
-			newList[i+numLeaves]=in.getLeaf(i);
-			newList[i+numLeaves].setMarkSurface(newList[i+numLeaves].getMarkSurface()+sizeL12);
-			newList[i+numLeaves].setMarkBrush(newList[i+numLeaves].getMarkBrush()+sizeL13);
-			newList[i+numLeaves].setPVS(0);
-		}
-		numLeaves=numLeaves+in.getNumElements();
-		leaves=newList;
 	}
 
 	// save(String)
@@ -198,12 +177,6 @@ public class Lump11 {
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
-	}
-	
-	// save()
-	// Saves the lump, overwriting the one data was read from
-	public void save() {
-		save(data.getParent());
 	}
 
 	// +setAllToVisible()

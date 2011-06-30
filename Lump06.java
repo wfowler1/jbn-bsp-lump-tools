@@ -118,6 +118,36 @@ public class Lump06 {
 		save(data.getParent());
 	}
 	
+	// delete(int)
+	// Deletes the mesh at the passed index
+	public void delete(int index) {
+		int[] newList=new int[numMeshes-1];
+		for(int i=0;i<numMeshes-1;i++) {
+			if(i<index) {
+				newList[i]=meshes[i];
+			} else {
+				newList[i]=meshes[i+1];
+			}
+		}
+		meshes=newList;
+		numMeshes-=1;
+	}
+	
+	// delete(int, int)
+	// Deletes an amount of meshes starting at the mesh at the passed index
+	public void delete(int index, int amount) {
+		int[] newList=new int[numMeshes-amount];
+		for(int i=0;i<numMeshes-amount;i++) {
+			if(i<index) {
+				newList[i]=meshes[i];
+			} else {
+				newList[i]=meshes[i+amount];
+			}
+		}
+		meshes=newList;
+		numMeshes-=amount;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
@@ -138,11 +168,16 @@ public class Lump06 {
 		return meshes[i];
 	}
 	
-	public int[] getMesh() {
+	public int[] getMeshes() {
 		return meshes;
 	}
 	
 	public void setMesh(int i, int in) {
 		meshes[i]=in;
+	}
+	
+	public void setMeshes(int[] in) {
+		meshes=in;
+		numMeshes=in.length;
 	}
 }

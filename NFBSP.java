@@ -1,8 +1,12 @@
 // NFBSP class
 //
-// This class holds all references to the lump data structures after the
-// lumps have been analyzed, and contains methods for manipulating these
-// lumps, minimizing the amount of work needed to manually mod a map.
+// This class holds all references to the lump data structures  and
+// contains the higher-level methods for manipulating these lumps,
+// minimizing the amount of work needed to manually mod a map. Lower-level
+// methods for manipulating the data (for example, actually CHANGING and
+// accessing the data) are handled in the Lump## classes as accessors and
+// mutators. This class retrieves information from the Lump classes to
+// manipulate the map as a whole while keeping the lumps separate.
 //
 // The data for a specific lump is contained in its own Lump class, which
 // is specific to that lump. This class is for manipulating and searching
@@ -10,11 +14,12 @@
 //
 // The data is stored in the exact same order in which is was read, keeping
 // all the indices from one lump into another exactly the same (unless 
-// something was edited).
+// something was edited). This means that a map opened then directly saved
+// from memory will be a 1:1 match with the original.
 
 // TODO:
-// create methods for editing the lumps
-// create a "map optimizer" recycling data structures with the exact same data
+// create methods for searching and editing the lumps
+// Finish the lump separator/combiner
 
 // The strange thing about the NightFire (and the other) BSP files is the
 // virtual maze of data references. Leaves are born from Nodes created using
@@ -39,7 +44,11 @@ public class NFBSP {
 	
 	Runtime r = Runtime.getRuntime(); // Get a runtime object. This is for calling
 	                                  // Java's garbage collector and does not need
-												 // to be ported.
+												 // to be ported. I try not to leave memory leaks
+												 // but since Java has no way explicitly reallocate
+												 // unused memory I have to tell it when a good
+												 // time is to run the garbage collector, by
+												 // calling gc().
 
 	// All lumps will be in the same folder. This String IS that folder.
 	private String filepath;
@@ -108,10 +117,16 @@ public class NFBSP {
 	// the program fails nicely.
 	public NFBSP(String in) {
 		try {
-			if (in.charAt(in.length()-1) != '\\' && in.charAt(in.length()-1) != '/') {
-				in+="\\"; // Add a '\' character to the end of the path if it isn't already there
+			if (in.substring(in.length()-4).equalsIgnoreCase(".BSP")) {
+				filepath=in.substring(0,in.length()-4);
+				LS ls=new LS(in);
+				ls.separateLumps();
+			} else {
+				if (in.charAt(in.length()-1) != '\\' && in.charAt(in.length()-1) != '/') {
+					in+="\\"; // Add a '\' character to the end of the path if it isn't already there
+				}
+				filepath=in;
 			}
-			filepath=in;
 			
 			myL0 = new Lump00(filepath+"00 - Entities.txt");
 			myL1 = new Lump01(filepath+"01 - Planes.hex");
@@ -187,13 +202,19 @@ public class NFBSP {
 		// optimized, and explanation is provided.
 		
 		// Every entitiy is unique and cannot be optimized.
+		System.out.println("\nOptimizing planes...");
 		optimizePlanes();
+		System.out.println("Optimizing textures...");
 		optimizeTextures(); // A compiler will never allow duplicates in this one,
 		                    // so it's mostly for when something has been added
+		System.out.println("Optimizing materials...");
 		optimizeMaterials();
 		// Vertices are referenced in index/item pairs, with insufficient redundancy
 		// Normals cannot be recycled as the lump must be the same size as vertices
-		optimizeMeshes(); // TODO: I think I know a way to do this
+		System.out.println("Optimizing meshes...");
+		//optimizeMeshes();
+		alternativeOptimizeMeshes();
+		System.out.println("Optimizing visibilities...");
 		optimizeVisibility(); // Visibility is a ridiculous pile of garbage. But it's possible...
 		// Nodes are always unique.
 		// Faces are referenced many times, and once in an index/items pair. Don't try this.
@@ -205,8 +226,10 @@ public class NFBSP {
 		// Models, don't make me laugh.
 		// Brushes may be possible, but are probably all unique.
 		// Brush sides probably need to reference a specific face.
+		System.out.println("Optimizing texture scaling matrix...");
 		optimizeTexMatrix(); // Should be plenty of redundancy here!
-		r.gc();
+		
+		r.gc(); // Collect garbage, there may be a lot of it
 	}
 	
 	// optimizePlanes()
@@ -214,9 +237,53 @@ public class NFBSP {
 	// them instead. This is complicated by the fact that planes are referenced
 	// by several different lumps each for their own purposes. However, it is
 	// for that same reason planes are probably ripe for optimization.
+	// Iterators:
+	// i is the current plane
+	// j is the plane the current plane is being compared to
+	// k is the current index into another lump to check if it references the deleted plane (which "other" lump differs in the loops)
 	public void optimizePlanes() {
-		
-	}
+		int numDeldPlanes=0;
+		int numPlns=myL1.getNumElements();
+		for(int i=0;i<numPlns;i++) { // for each plane
+			for(int j=i+1;j<numPlns;j++) { // for each plane after plane i
+				if(myL1.getPlane(i).equals(myL1.getPlane(j))) { // If planes i and j are the same
+					myL1.delete(j); // delete plane j from the list
+					numDeldPlanes++;
+					numPlns--;
+					// Now all references to planes must be corrected to account for changed indices
+					for(int k=0;k<myL8.getNumElements();k++) {
+						if(myL8.getNode(k).getPlane()>j) { // if the reference is greater than that of the deleted plane
+							myL8.getNode(k).setPlane(myL8.getNode(k).getPlane()-1); // subtract one from it
+						} else { // otherwise
+							if(myL8.getNode(k).getPlane()==j) { // if the reference IS the deleted plane
+								myL8.getNode(k).setPlane(i); // Set it to the first plane instead, which is equal
+							}
+						}
+					}
+					for(int k=0;k<myL9.getNumElements();k++) {
+						if(myL9.getFace(k).getPlane()>j) { // if the reference is greater than that of the deleted plane
+							myL9.getFace(k).setPlane(myL9.getFace(k).getPlane()-1); // subtract one from it
+						} else { // otherwise
+							if(myL9.getFace(k).getPlane()==j) { // if the reference IS the deleted plane
+								myL9.getFace(k).setPlane(i); // Set it to the first plane instead, which is equal
+							}
+						}
+					}
+					for(int k=0;k<myL16.getNumElements();k++) {
+						if(myL16.getBrushSide(k).getPlane()>j) { // if the reference is greater than that of the deleted plane
+							myL16.getBrushSide(k).setPlane(myL16.getBrushSide(k).getPlane()-1); // subtract one from it
+						} else { // otherwise
+							if(myL16.getBrushSide(k).getPlane()==j) { // if the reference IS the deleted plane
+								myL16.getBrushSide(k).setPlane(i); // Set it to the first plane instead, which is equal
+							}
+						}
+					}
+					j--; // since element j+1 is now element j, we must check j again
+				} // check if they are equal
+			} // for each subsequent plane
+		} // for each plane
+		System.out.println(numDeldPlanes + " duplicate planes deleted.");
+	} // optimizePlanes()
 	
 	// optimizeTextures()
 	// Finds duplicate textures and fixes references to them in faces. Quite
@@ -226,6 +293,7 @@ public class NFBSP {
 	// j: index of the second texture
 	// k: when textures i and j are the same, this is the current face
 	public void optimizeTextures() {
+		int numDeldTxts=0;
 		int numTxts=myL2.getNumElements();
 		for(int i=0;i<numTxts-1;i++) {
 			String firstTxt=myL2.getTexture(i);
@@ -237,12 +305,13 @@ public class NFBSP {
 							myL9.getFace(k).setTexture(i); // and instead reference texture i
 						}
 					}
-					myL2.delTexture(j); // delete duplicate
+					myL2.delete(j); // delete duplicate
 					numTxts--; // The array has gotten smaller
 					j--; // since element j+1 is now element j, we must check j again
 				}
 			}
 		}
+		System.out.println(numDeldTxts+" duplicate textures deleted.");
 	}
 	
 	// optimizeMaterials()
@@ -252,6 +321,7 @@ public class NFBSP {
 	// j: index of the second material
 	// k: when materials i and j are the same, this is the current face
 	public void optimizeMaterials() {
+		int numDeldMats=0;
 		int numMats=myL3.getNumElements();
 		for(int i=0;i<numMats-1;i++) {
 			String firstMat=myL3.getMaterial(i);
@@ -263,24 +333,177 @@ public class NFBSP {
 							myL9.getFace(k).setTexture(i); // and instead reference texture i
 						}
 					}
-					myL3.delMaterial(j); // delete duplicate
+					myL3.delete(j); // delete duplicate
+					numDeldMats++;
 					numMats--; // The array has gotten smaller
 					j--; // since element j+1 is now element j, we must check j again
 				}
 			}
 		}
+		System.out.println(numDeldMats+" duplicate materials deleted.");
 	}
 	
+	// optimizeMeshes()
+	// In many faces, meshes are referenced six at a time, and probably 100% of the time
+	// these six meshes are 0, 1, 2, 0, 2, 3. These are indices to a few specific vertices,
+	// but they are the same nonetheless (faces specify which specific vertices). The way to
+	// check if these structures are duplicates is to check each face against all other
+	// faces, and if they both reference the same number of meshes, check if the meshes are
+	// equivalent. If they are, delete all data from the duplicate set and reference the
+	// first instance twice.
+	// I don't see why map compilers don't automatically do this. There's a lot of duplicated
+	// mesh bunches that could be optimized out, in both officially and custom compiled maps.
+	// Only reason I can think of is this makes it unreliable, but I can't imagine how.
+	//
+	// This is already one of the most complicated and messy things I've ever coded, but it
+	// actually WORKS. This process shrunk the meshes lump of airfield01 from 502,524 bytes
+	// to 708 bytes, which is 709.78 times smaller. Upon loading the map in the game engine
+	// I didn't see any apparent problems. Also...
+	// TODO: THIS PROCESS IS ACTUALLY IMCOMPLETE. It doesn't cover cases where one face has
+	// for example three meshes (0, 1, 2) and another one has six (0, 1, 2, 0, 2, 3). The
+	// 0, 1, 2 can be recycled and used for both cases. I'm not sure how to finish the algorithm
+	// to take advantage of this though... I'll have to think about this one.
+	//
+	// I can't believe this isn't part of the regular compilation process. This is a ridiculous
+	// amount of rundant data which can be recycled. If I completed this algorithm I could probably
+	// get a lump 1000 times smaller than the original in most cases. The best explanation I can
+	// come up with is the compiler wasn't complete due to NightFire's obvious rush release.
+	//
+	// Iterators:
+	// i: Current face
+	// j: Face being compared to current face
+	// k: Current mesh in a bunch to check against the same mesh in another bunch
 	public void optimizeMeshes() {
-		;
+		int numFaces=myL9.getNumElements();
+		int numDeldMeshs=0;
+		// Phase 1: gets rid of the same data stored at different places
+		for(int i=0;i<numFaces;i++) { // for each face
+			for(int j=i+1;j<numFaces;j++) { // for each subsequent face
+				// If both faces i and j reference the same number of meshes, and that number isn't 0, and they don't reference the SAME meshes
+				if(myL9.getFace(i).getNumMeshs()!=0 && myL9.getFace(i).getMeshs()!=myL9.getFace(j).getMeshs() && myL9.getFace(i).getNumMeshs()==myL9.getFace(j).getNumMeshs()) {
+					int numMeshesInBunch=myL9.getFace(i).getNumMeshs(); // How big the "bunch" is
+					boolean isDuplicate=true; // Assume the bunches are the same until it is proven they are not
+					for(int k=0;k<numMeshesInBunch && isDuplicate;k++) {
+						// if the Kth mesh in both bunches are not the same (they are not duplicates)
+						if(myL6.getMesh(myL9.getFace(i).getMeshs()+k)!=myL6.getMesh(myL9.getFace(j).getMeshs()+k)) {
+							isDuplicate=false;
+							break; // Exit the for loop immediately, there's no point in checking the rest
+						}
+					}
+					if(isDuplicate) { // If the bunch of meshes is never proven not a duplicate
+						numDeldMeshs+=numMeshesInBunch;
+						myL6.delete(myL9.getFace(j).getMeshs(), numMeshesInBunch); // Delete the duplicate bunch
+						for(int l=0;l<myL9.getNumElements();l++) { // in each face
+							if(myL9.getFace(l).getMeshs() > myL9.getFace(j).getMeshs()) { // if the index of this face's meshes are after the deleted messages
+								myL9.getFace(l).setMeshs(myL9.getFace(l).getMeshs()-numMeshesInBunch); // subtract the amount of deleted meshes from the index
+							} else {
+								if(myL9.getFace(l).getMeshs() == myL9.getFace(j).getMeshs()) { // if this face's meshes was the deleted meshes
+									myL9.getFace(l).setMeshs(myL9.getFace(i).getMeshs()); // Set the mesh reference to the first instance
+								}
+							}
+						} // Face readjuster
+					} // If it was a dulpicate
+				} // If they were the same size
+			} // For each subsequent face
+		} // For each face
+		// Phase 2: TODO
+		System.out.println(numDeldMeshs+" duplicate mesh bunches deleted.");
 	}
 	
+	// alternativeOptimizeMeshes()
+	// This is an alternative method to optimizing meshes. It's a very lazy way to
+	// do this and could be very error-prone in certain cases, but from what I've
+	// seen this should work for every compiled map.
+	// This assumes every single mesh bunch follows the pattern:
+	// (0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, etc.)
+	// which from what I've seen, they all do, or some smaller subset of it, like:
+	// (0, 1, 2) or (0, 1, 2, 0, 2, 3).
+	// If I take advantage of this fact, I can have a single bunch of meshes and
+	// simply reference pieces of it. This is what I would hope to do with the other
+	// optimizeMeshes() method but the process is very complicated unless I cut corners
+	// like I have in this method. I hope to finish the other method later on.
+	//
+	// After testing this seems to work fine, even on large maps with complex geometries.
+	// It's a quick and dirty method but it's a sloppy lump to work on. I'd be more comfortable
+	// using the slow, safe method if I finished it.
+	public void alternativeOptimizeMeshes() {
+		int highestValue=2; // The highest number will always be at least 2
+		for(int i=0;i<myL6.getNumElements()/3;i++) { // for each set of three ints in the lump
+			if(myL6.getMesh((i*3)+2)>highestValue) { // Go through each third one
+				highestValue=myL6.getMesh((i*3)+2); // and find and record the highest value
+			}
+		}
+		int[] newLump=new int[(highestValue-1)*3]; // If the highest value is N, there will be N-1 sets of 3 ints.
+		for(int i=0;i<newLump.length/3;i++) { // For each set of three ints
+			newLump[i*3]=0; // The first value in each set of three is always 0
+			newLump[(i*3)+1]=i+1; // The second value always reflects the current set of three (starting at set 1, not 0)
+			newLump[(i*3)+2]=i+2; // The third value always reflects the current set of three, plus one
+		}
+		myL6.setMeshes(newLump);
+		for(int i=0;i<myL9.getNumElements();i++) { // For each face
+			myL9.getFace(i).setMeshs(0); // The new data will always be at index 0, and each face will reference as much of it as it needs.
+		}
+		System.out.println("Meshes optimized to "+newLump.length*4+" bytes.");
+	}
+	
+	// optimizeVisibility()
+	// Finds duplicate Potentially Visible Sets and deletes the second one
 	public void optimizeVisibility() {
-		;
+		int numPVS=myL7.getNumElements();
+		if(numPVS>1) { // Make sure visibility data exists, if it doesn't then either it wasn't compiled into the map or it was deleted.
+			int lengthOfPVS=myL7.getLengthOfData();
+			int numDeldPVS=0;
+			for(int i=0;i<numPVS;i++) { // For each PVS
+				for(int j=i+1;j<numPVS;j++) { // And each subsequent PVS
+					if(myL7.equals(i, myL7.getPVS(j))) { // if the PVSes are the same
+						myL7.delete(j); // Delete the duplicate PVS
+						numDeldPVS++;
+						numPVS--;
+						for(int k=0;k<myL11.getNumElements();k++) {
+							if(myL11.getLeaf(k).getPVS()>j*lengthOfPVS) {
+								myL11.getLeaf(k).setPVS(myL11.getLeaf(k).getPVS()-lengthOfPVS);
+							} else {
+								if(myL11.getLeaf(k).getPVS()==j*lengthOfPVS) {
+									myL11.getLeaf(k).setPVS(i*lengthOfPVS);
+								}
+							}
+						}
+						j--; // since element j+1 is now element j, we must check j again
+					}
+				}
+			}
+			System.out.println(numDeldPVS+" duplicate Potentially Visible Sets deleted.");
+		} else {
+			System.out.println("Visibility data doesn't exist. This is probably NOT a problem.");
+		}
 	}
 	
+	// optimizeTexMatrix()
+	// Finds any texture matrixes that are the same data, deletes all except one and
+	// only use that one.
 	public void optimizeTexMatrix() {
-		;
+		int numDeldMatxs=0;
+		int numMatxs=myL17.getNumElements();
+		for(int i=0;i<numMatxs;i++) { // for each matrix
+			for(int j=i+1;j<numMatxs;j++) { // for each matrix after matrix i
+				if(myL17.getTexMatrix(i).equals(myL17.getTexMatrix(j))) { // If matrices i and j are the same
+					myL17.delete(j); // delete matrix j from the list
+					numDeldMatxs++;
+					numMatxs--;
+					for(int k=0;k<myL9.getNumElements();k++) {
+						if(myL9.getFace(k).getTexStyle()>j) { // if the reference is greater than that of the deleted matrix
+							myL9.getFace(k).setTexStyle(myL9.getFace(k).getTexStyle()-1); // subtract one from it
+						} else { // otherwise
+							if(myL9.getFace(k).getTexStyle()==j) { // if the reference IS the deleted matrix
+								myL9.getFace(k).setTexStyle(i); // Set it to the i'th matrix instead, which is equal
+							}
+						}
+					}
+					j--; // since element j+1 is now element j, we must check j again
+				} // check if they are equal
+			} // for each subsequent matrix
+		} // for each matrix
+		System.out.println(numDeldMatxs + " duplicate texture scale matrices deleted.\n");
 	}
 	
 	// +combineBSP(NFBSP)
@@ -310,23 +533,48 @@ public class NFBSP {
 	// data for two maps, when the amount of bits in a visibility structure
 	// doesn't match the number of leaves in the map? This program is not
 	// a map compiler, so I doubt it's possible to reliably create a working
-	// visibility lump. Though I'd rather not do this, I'm probably going to
-	// have to have a lump full of TRUEs and have every leaf reference that.
+	// visibility lump. Though I'd rather not do this, I'm going to have to
+	// set every reference to visibility to -1 (0xFFFFFFFF) so it was
+	// as if the map hadn't had visibility compiled in the first place.
 	// Running a visibility algorithm is a long process that I have no idea
 	// how to do, and BVIS can't do it without portal files created by BBSP.
 	//
 	// One possible solution is to decompile and recompile the map after this
 	// process is run, but (for now) that is beyond the scope of this program.
 	//
+	// TODO: Finish moving the add(Lump) methods into this class. It simplifies
+	// things a lot. Just make them return a new lump## object.
 	// TODO: Figure out why lighting gets fucked up in the process
-	// TODO: Create two dummy nodes with a plane at like 16000 coords from the
-	// origin and have them reference the root nodes of both maps. Need testing
 	// though, if the nodes on the source maps are on the wrong side of the 
 	// plane, they probably won't show up at all.
 	// TODO: Move all world faces and world leaves together in their lumps
-	// and make sure model #1 references all of them. This will be a toughie.
+	// and make sure model #0 references all of them. This will be a toughie.
 	public void combineBSP(NFBSP other) {
 		try {
+			// By creating new lump objects instead of rewriting them as I go,
+			// I don't need to worry about one combining method overwriting
+			// data that another combining method needs. As a bonus, this also
+			// makes it thread safe, if I ever figure out how to multithread 
+			// Java. Dammit, Java sucks.
+			Lump00 newL0;
+			Lump01 newL1;
+			Lump02 newL2;
+			Lump03 newL3;
+			Lump04 newL4;
+			Lump05 newL5;
+			Lump06 newL6;
+			Lump07 newL7;
+			Lump08 newL8;
+			Lump09 newL9;
+			Lump10 newL10;
+			Lump11 newL11;
+			Lump12 newL12;
+			Lump13 newL13;
+			Lump14 newL14;
+			Lump15 newL15;
+			Lump16 newL16;
+			Lump17 newL17;
+
 			myL0.add(other.getLump00());
 			myL1.add(other.getLump01());
 			myL2.add(other.getLump02());
@@ -339,15 +587,13 @@ public class NFBSP {
 			                                // with length 0
 			myL7.setPVSes(newVis);
 			
-			myL8.add(other.getLump08());
-			
-			myL9.add(other.getLump09());
+			newL8=combineNodes(other.getLump08());
+			newL9=combineFaces(other.getLump09());
 			
 			myL10.add(other.getLump10());
 			// myL10.delAllPixels();
 			
-			myL11.add(other.getLump11());
-			myL11.setAllToVisible();
+			newL11=combineLeaves(other.getLump11());
 			
 			myL12.add(other.getLump12());
 			myL13.add(other.getLump13());
@@ -355,6 +601,26 @@ public class NFBSP {
 			myL15.add(other.getLump15());
 			myL16.add(other.getLump16());
 			myL17.add(other.getLump17());
+			
+			//myL0=newL0;
+			//myL1=newL1;
+			//myL2=newL2;
+			//myL3=newL3;
+			//myL4=newL4;
+			//myL5=newL5;
+			//myL6=newL6;
+			//myL7=newL7;
+			myL8=newL8;
+			myL9=newL9;
+			//myL10=newL10;
+			myL11=newL11;
+			//myL12=newL12;
+			//myL13=newL13;
+			//myL14=newL14;
+			//myL15=newL15;
+			//myL16=newL16;
+			//myL17=newL17;
+			
 			modified=true;
 		} catch(java.io.FileNotFoundException e) {
 			System.out.println("Cannot find second BSP's files!");
@@ -363,11 +629,105 @@ public class NFBSP {
 		}
 	}
 	
+	// combineNodes(Lump08)
+	// Combines two Lump08s.
+	// TODO: Find a way to ensure the game engine actually loads the added lump data.
+	// As it is, I've tried to put all the stuff on one side of a plane that's really
+	// far out of the world, but I don't know if this works.
+	public Lump08 combineNodes(Lump08 in) {
+		Node[] newList=new Node[myL8.getNumElements()+in.getNumElements()+3]; // Need three new nodes. First
+		                                                                      // is the new root, second and
+																					             // third reference the first and
+		                                                                      // second maps' roots, respectively.
+		                                                                      // It must be done this way to make
+		                                                                      // sure everything is on the proper
+		                                                                      // side of a plane, and it all
+		                                                                      // shows up.
+		Plane dummyPlane=new Plane(0, 0, 1, -16384, 3);
+		myL1.add(dummyPlane);
+		Node newRoot=new Node(myL1.getNumElements(), 1, 2, -16384, -16384, -16384, 16384, 16384, 16384);
+		Node refMap1=new Node(myL1.getNumElements(), 3, -1, -16384, -16384, -16384, 16384, 16384, 16384);
+		Node refMap2=new Node(myL1.getNumElements(), myL8.getNumElements()+3, -1, -16384, -16384, -16384, 16384, 16384, 16384);
+		newList[0]=newRoot;
+		newList[1]=refMap1;
+		newList[2]=refMap2;
+		for(int i=0;i<myL8.getNumElements();i++) {
+			newList[i+3]=myL8.getNode(i);
+			if(newList[i+3].getChild1()>=0) { // Child1 is a Node
+				newList[i+3].setChild1(newList[i+3].getChild1()+3);
+			}
+			if(newList[i+3].getChild2()>=0) { // Child1 is a Node
+				newList[i+3].setChild2(newList[i+3].getChild2()+3);
+			}
+		}
+		for(int i=0;i<in.getNumElements();i++) {
+			newList[i+myL8.getNumElements()+3]=in.getNode(i);
+			if(newList[i+myL8.getNumElements()+3].getChild1()<0) { // Child1 is a Leaf
+				// leaf indices are negative, so subtract the size of the old leaf list from the new index
+				newList[i+myL8.getNumElements()+3].setChild1(newList[i+myL8.getNumElements()+3].getChild1()-myL11.getNumElements());
+			} else { // child1 will be a Node
+				newList[i+myL8.getNumElements()+3].setChild1(newList[i+myL8.getNumElements()+3].getChild1()+myL8.getNumElements()+3);
+			}
+			if(newList[i+myL8.getNumElements()+3].getChild2()<0) { // Child2 is a Leaf
+				newList[i+myL8.getNumElements()+3].setChild2(newList[i+myL8.getNumElements()+3].getChild2()-myL11.getNumElements());
+			} else { // child2 will be a Node
+				newList[i+myL8.getNumElements()+3].setChild2(newList[i+myL8.getNumElements()+3].getChild2()+myL8.getNumElements()+3);
+			}
+		}
+		return new Lump08(newList);
+	}
+	
+	// combineFaces(Lump09)
+	// Adds every face in another Lump09 object.
+	// TODO: Move all world faces to be before all model faces, much like with leaves
+	public Lump09 combineFaces(Lump09 in) {
+		Face[] newList=new Face[myL9.getNumElements()+in.getNumElements()];
+		for(int i=0;i<myL9.getNumElements();i++) {
+			newList[i]=myL9.getFace(i);
+		}
+		for(int i=0;i<in.getNumElements();i++) {
+			// All of this MUST be done for every face added from the second map. Therefore,
+			// it is important (but not essential) that the user add a smaller map to a bigger
+			// one, not the other way around.
+			newList[i+myL9.getNumElements()]=in.getFace(i);
+			newList[i+myL9.getNumElements()].setPlane(newList[i+myL9.getNumElements()].getPlane()+myL1.getNumElements());
+			newList[i+myL9.getNumElements()].setVert(newList[i+myL9.getNumElements()].getVert()+myL4.getNumElements());
+			newList[i+myL9.getNumElements()].setMeshs(newList[i+myL9.getNumElements()].getMeshs()+myL6.getNumElements());
+			newList[i+myL9.getNumElements()].setTexture(newList[i+myL9.getNumElements()].getTexture()+myL2.getNumElements());
+			newList[i+myL9.getNumElements()].setMaterial(newList[i+myL9.getNumElements()].getMaterial()+myL3.getNumElements());
+			newList[i+myL9.getNumElements()].setTexStyle(newList[i+myL9.getNumElements()].getTexStyle()+myL17.getNumElements());
+			newList[i+myL9.getNumElements()].setLgtMaps(newList[i+myL9.getNumElements()].getLgtMaps()+myL10.getNumElements());
+		}
+		return new Lump09(newList);
+	}
+
+	
+	// combineLeaves(Lump11)
+	// Adds every leaf in another Lump11 object.
+	// TODO: Put all world leaves before model leaves. These can be determined by looking
+	// at model 0 in Lump14, which is the world model. Models only reference leaves by
+	// index and amount, so leaves must be in the right places for referencing to work.
+	public Lump11 combineLeaves(Lump11 in) {
+		Leaf[] newList=new Leaf[myL11.getNumElements()+in.getNumElements()];
+		for(int i=0;i<myL11.getNumElements();i++) {
+			newList[i]=myL11.getLeaf(i);
+			newList[i].setPVS(-1);
+		}
+		for(int i=0;i<in.getNumElements();i++) {
+			newList[i+myL11.getNumElements()]=in.getLeaf(i);
+			newList[i+myL11.getNumElements()].setMarkSurface(newList[i+myL11.getNumElements()].getMarkSurface()+myL12.getNumElements());
+			newList[i+myL11.getNumElements()].setMarkBrush(newList[i+myL11.getNumElements()].getMarkBrush()+myL13.getNumElements());
+			newList[i+myL11.getNumElements()].setPVS(-1);
+			// Visibility is impossible to determine
+		}
+		return new Lump11(newList);
+	}
+	
 	// saveLumps(String)
 	// Tells the lumps to save their data into the specified path.
 	// TODO: Speed this up a bit. I've already reaped some benefits from
 	// not using DataOutputStream but it's still quite slow. I'd like to
-	// call this method often.
+	// call this method often. Idea: Use an output buffer of maybe 4096bytes.
 	public void saveLumps(String path) {
 		Date pre=new Date();
 		if(modified || true) { // TODO: remove "true"
@@ -410,6 +770,12 @@ public class NFBSP {
 		}
 		Date post=new Date();
 		System.out.println(post.getTime()-pre.getTime()+" milliseconds elapsed");
+	}
+	
+	// separateLumps(String)
+	// Separates the lumps of the specified BSP
+	public static void separateLumps(String path) {
+		
 	}
 	
 	// ACCESSORS/MUTATORS

@@ -116,9 +116,9 @@ public class Lump03 {
 	}
 	
 	// Deletes a material from the array by index
-	public void delMaterial(int index) {
+	public void delete(int index) {
 		String[] newList=new String[numMtrls-1];
-		for(int i=0;i<index;i++) {
+		for(int i=0;i<numMtrls-1;i++) {
 			if(i<index) {
 				newList[i]=materials[i];
 			} else {

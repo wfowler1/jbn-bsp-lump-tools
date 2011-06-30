@@ -62,6 +62,17 @@ public class Plane {
 		System.out.println(coords[X] + " " + coords[Y] + " " + coords[Z] + " " + dist + " " + type);
 	}
 	
+	// equals(Plane)
+	// Checks the data of this plane against the data of another, and returns
+	// true if the data is equal in both.
+	public boolean equals(Plane in) {
+		if(coords[X]==in.getX() && coords[Y]==in.getY() && coords[Z]==in.getZ() && dist==in.getDist() && type==in.getType()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// returns the coordinates as a float3
