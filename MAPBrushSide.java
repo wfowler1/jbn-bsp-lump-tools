@@ -61,5 +61,18 @@ public class MAPBrushSide {
 		       " [ "+lgtScale+" "+lgtRot+" ]";
 	}
 	
+	// +flipPlane()
+	// Flips the plane over. This is useful for modifying the map brush side just before
+	// it is written, if necessary, as opposed to the flipPlane method in the NFBSP class,
+	// which is for flipping the plane before the MAPBrushSide object is even created.
+	public void flipPlane() {
+		Vertex temp=plane[1];
+		plane[1]=plane[2];
+		plane[2]=temp;
+	}
+	
 	// ACCESSORS/MUTATORS
+	public Vertex[] getPlane() {
+		return plane;
+	}
 }

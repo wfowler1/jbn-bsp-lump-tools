@@ -43,10 +43,8 @@ public class LS {
 			folderPath=in;
 			if (folderPath.charAt(folderPath.length()-1) != '\\' && folderPath.charAt(folderPath.length()-1) != '/') {
 				folderPath+="\\"; // Add a '\' character to the end of the path if it isn't already there
-				BSP=in+".bsp";
-			} else {
-				BSP=in.substring(0,in.length()-1) + ".bsp";
 			}
+			BSP=in+".bsp";
 		}
 	}
 	

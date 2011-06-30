@@ -222,7 +222,7 @@ public class Lump00 {
 	// it gets VERY slow, even if you concatenate them all before writing.
 	public void save(String path) {
 		File newFile;
-		if(path.substring(path.length()-4).equals(".map")) {
+		if(path.substring(path.length()-4).equalsIgnoreCase(".map")) {
 			newFile=new File(path);
 		} else {
 			newFile=new File(path+"\\00 - Entities.txt");
@@ -234,7 +234,6 @@ public class Lump00 {
 				newFile.delete();
 				newFile.createNewFile();
 			}
-			System.out.println("File created, writing...");
 			
 			// PrintWriter entityWriter=new PrintWriter(newFile);
 			FileOutputStream entityWriter=new FileOutputStream(newFile);

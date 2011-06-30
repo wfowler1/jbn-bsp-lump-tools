@@ -45,6 +45,11 @@ public class Lump14 {
 		}
 	}
 	
+	public Lump14(Model[] in) {
+		models=in;
+		numModels=models.length;
+	}
+	
 	// METHODS
 	
 	// -populateModelList()
@@ -84,58 +89,6 @@ public class Lump14 {
 		add(new Model(inMinX, inMinY, inMinZ, inMaxX, inMaxY, inMaxZ, inUnk0, inUnk1, inUnk2, inUnk3, inLeaf, inNumLeafs, inFace, inNumFaces));
 	}
 	
-	// add(Lump14)
-	// Adds every model in another Lump14 object, minus the first one. Instead, the mins and
-	// maxs from the first one are set to the lower or higher values between the two maps, respectively.
-	// This is because the first model is the world, and since two worlds are being combined, their
-	// models must be combined as well. The rest of the models are copied with their indices reduced
-	// by 1. This is already accounted for in the entities add() method.
-	// TODO: Fix the references to Lump11 by reorganizing that lump. This will involve a FUCKTON of work.
-	// The same must be done for Lump09, which is a nightmare of covering all your bases with all the lumps
-	// which reference that one. It's doable, but extremely tedious and difficult.
-	public void add(Lump14 in) {
-		Model[] newList=new Model[numModels+in.getNumElements()];
-		File myLump09=new File(data.getParent()+"//09 - Faces.hex");
-		int sizeL09=(int)myLump09.length()/48;
-		File myLump11=new File(data.getParent()+"//11 - Leaves.hex");
-		int sizeL11=(int)myLump11.length()/48;
-		for(int i=0;i<numModels;i++) {
-			newList[i]=models[i];
-		}
-		
-		// mins/maxs fixing
-		// Since this is only run once per combining operation, it can be as inefficient as can be. It's O(1).
-		if(newList[0].getMinX()>in.getModel(0).getMinX()) {
-			newList[0].setMinX(in.getModel(0).getMinX());
-		}
-		if(newList[0].getMinY()>in.getModel(0).getMinY()) {
-			newList[0].setMinY(in.getModel(0).getMinY());
-		}
-		if(newList[0].getMinZ()>in.getModel(0).getMinZ()) {
-			newList[0].setMinZ(in.getModel(0).getMinZ());
-		}
-		if(newList[0].getMaxX()<in.getModel(0).getMaxX()) {
-			newList[0].setMaxX(in.getModel(0).getMaxX());
-		}
-		if(newList[0].getMaxY()<in.getModel(0).getMaxY()) {
-			newList[0].setMaxY(in.getModel(0).getMaxY());
-		}
-		if(newList[0].getMaxZ()<in.getModel(0).getMaxZ()) {
-			newList[0].setMaxZ(in.getModel(0).getMaxZ());
-		}
-		
-		// Leaf/face index/items fixing here
-		
-		for(int i=1;i<in.getNumElements();i++) { // Start with i=1 since the 0th one is handled above
-			newList[i+numModels-1]=in.getModel(i);
-			// TODO: These will have to be corrected too after reorganizing. This is the part that's the PITA.
-			newList[i+numModels-1].setLeaf(newList[i+numModels-1].getLeaf()+sizeL11);
-			newList[i+numModels-1].setFace(newList[i+numModels-1].getFace()+sizeL09);
-		}
-		numModels=numModels+in.getNumElements()-1;
-		models=newList;
-	}
-
 	// save(String)
 	// Saves the lump to the specified path.
 	public void save(String path) {
@@ -227,12 +180,6 @@ public class Lump14 {
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
-	}
-	
-	// save()
-	// Saves the lump, overwriting the one data was read from
-	public void save() {
-		save(data.getParent());
 	}
 	
 	// ACCESSORS/MUTATORS

@@ -13,7 +13,7 @@ public class Lump09 {
 	private File data;
 	private int numFaces=0;
 	// There are two types of faces, world and model. The BSP compiler and the game engine
-	// fails to make the distinction, instead reading all world faces into model 0, and all
+	// fail to make the distinction, instead reading all world faces into model 0, and all
 	// model faces are read by models 1-numModels. Model 0 is the world model, dereference
 	// all the faces/leaves for it and the world disappears visually but is still physically
 	// there.
@@ -58,6 +58,14 @@ public class Lump09 {
 	// Accepts an array of Face objects and sets the entire lump to it
 	public Lump09(Face[] in) {
 		faces=in;
+		numFaces=faces.length;
+	}
+	
+	// Accepts an array of Face objects and sets the entire lump to it, and allows specification of world vs. model faces
+	public Lump09(Face[] in, int newNumWorldFaces, int newNumModelFaces) {
+		faces=in;
+		numWorldFaces=newNumWorldFaces;
+		numModelFaces=newNumModelFaces;
 		numFaces=faces.length;
 	}
 	
@@ -216,21 +224,37 @@ public class Lump09 {
 	// One limitation: This depends on the world faces starting from face 0, as
 	// done by all compilers. This could complicate things with manually added
 	// faces.
-	public int getNumWorldFaces() throws java.io.FileNotFoundException, java.io.IOException {
+	public int getNumWorldFaces() {
 		if(numWorldFaces!=0) {
 			return numWorldFaces;
 		} // else
-		FileInputStream numWorldFaceGrabber=new FileInputStream(data.getParent()+"\\14 - Models.hex");
-		byte[] numWorldFacesAsByteArray=new byte[4];
-		numWorldFaceGrabber.skip(52);
-		numWorldFaceGrabber.read(numWorldFacesAsByteArray);
-		int numWF = numWorldFacesAsByteArray[0] + numWorldFacesAsByteArray[1]*256 + numWorldFacesAsByteArray[2]*65536 + numWorldFacesAsByteArray[3]*16777216;
-		numWorldFaceGrabber.close();
-		return numWF;
+		try {
+			FileInputStream numWorldFaceGrabber=new FileInputStream(data.getParent()+"\\14 - Models.hex");
+			byte[] numWorldFacesAsByteArray=new byte[4];
+			numWorldFaceGrabber.skip(52);
+			numWorldFaceGrabber.read(numWorldFacesAsByteArray);
+			int numWF = numWorldFacesAsByteArray[0] + numWorldFacesAsByteArray[1]*256 + numWorldFacesAsByteArray[2]*65536 + numWorldFacesAsByteArray[3]*16777216;
+			numWorldFaceGrabber.close();
+			return numWF;
+		} catch(java.io.IOException e) { // If this is thrown, there's a problem accessing the models file. There's no other way, so set it to SOMETHING valid.
+			System.out.println("Warning: Problem accessing models lump, unknown number of world/model faces!");
+			return numFaces;
+		}
 	}
 	
 	public int getNumModelFaces() {
 		return numModelFaces;
+	}
+	
+	// Set number of world or model faces. This is useful if a new Lump09 object was created,
+	// since it's new there's no way to know unless explicitly stated, since there's no corresponding
+	// Lump 14 file to reference.
+	public void setNumWorldFaces(int in) {
+		numWorldFaces=in;
+	}
+	
+	public void setNumModelFaces(int in) {
+		numModelFaces=in;
 	}
 	
 	public Face getFace(int i) {
