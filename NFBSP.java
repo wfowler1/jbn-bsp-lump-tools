@@ -94,6 +94,11 @@ public class NFBSP {
 	public final int BRUSHSIDES=16;
 	public final int TEXMATRIX=17;
 	
+	// Allows us to reference the X Y or Z components of a vector by their letter
+	public final int X=0;
+	public final int Y=1;
+	public final int Z=2;
+	
 	// This allows us to get the name of the lump using its index.
 	public static final String[] LUMPNAMES = {"Entities", "Planes", "Textures", "Materials", "Vertices", "Normals", "Indices", "Visibility", "Nodes", "Faces",
 	                             "Lighting", "Leaves", "Mark Surfaces", "Mark Brushes", "Models", "Brushes", "Brushsides", "Texmatrix"};
@@ -1142,15 +1147,15 @@ public class NFBSP {
 												}
 											}
 										} // End plane stuff
-										plane[0].setX(plane[0].getX()+(float)origin[0]);
-										plane[0].setY(plane[0].getY()+(float)origin[1]);
-										plane[0].setZ(plane[0].getZ()+(float)origin[2]);
-										plane[1].setX(plane[1].getX()+(float)origin[0]);
-										plane[1].setY(plane[1].getY()+(float)origin[1]);
-										plane[1].setZ(plane[1].getZ()+(float)origin[2]);
-										plane[2].setX(plane[2].getX()+(float)origin[0]);
-										plane[2].setY(plane[2].getY()+(float)origin[1]);
-										plane[2].setZ(plane[2].getZ()+(float)origin[2]);
+										plane[0].setX(plane[0].getX()+(float)origin[X]);
+										plane[0].setY(plane[0].getY()+(float)origin[Y]);
+										plane[0].setZ(plane[0].getZ()+(float)origin[Z]);
+										plane[1].setX(plane[1].getX()+(float)origin[X]);
+										plane[1].setY(plane[1].getY()+(float)origin[Y]);
+										plane[1].setZ(plane[1].getZ()+(float)origin[Z]);
+										plane[2].setX(plane[2].getX()+(float)origin[X]);
+										plane[2].setY(plane[2].getY()+(float)origin[Y]);
+										plane[2].setZ(plane[2].getZ()+(float)origin[Z]);
 										String texture=myL2.getTexture(currentFace.getTexture());
 										float[] textureS=new float[3];
 										float[] textureT=new float[3];
@@ -1159,24 +1164,26 @@ public class NFBSP {
 										double UAxisLength=Math.sqrt(Math.pow(currentTexMatrix.getUAxisX(),2)+Math.pow(currentTexMatrix.getUAxisY(),2)+Math.pow(currentTexMatrix.getUAxisZ(),2));
 										double VAxisLength=Math.sqrt(Math.pow(currentTexMatrix.getVAxisX(),2)+Math.pow(currentTexMatrix.getVAxisY(),2)+Math.pow(currentTexMatrix.getVAxisZ(),2));
 										// In compiled maps, shorter vectors=longer textures and vice versa. This will convert their lengths back to 1. We'll use the actual scale values for length.
+										float texScaleS=(float)(1/UAxisLength);// Let's use these values using the lengths of the U and V axes we found above.
+										float texScaleT=(float)(1/VAxisLength);
 										textureS[0]=(float)(currentTexMatrix.getUAxisX()/UAxisLength);
 										textureS[1]=(float)(currentTexMatrix.getUAxisY()/UAxisLength);
 										textureS[2]=(float)(currentTexMatrix.getUAxisZ()/UAxisLength);
-										float textureShiftS=currentTexMatrix.getUShift();
+										double originShiftS=((currentTexMatrix.getUAxisX()/UAxisLength)*origin[X]+(currentTexMatrix.getUAxisY()/UAxisLength)*origin[Y]+(currentTexMatrix.getUAxisZ()/UAxisLength)*origin[Z])/texScaleS;
+										float textureShiftS=currentTexMatrix.getUShift()-(float)originShiftS;
 										textureT[0]=(float)(currentTexMatrix.getVAxisX()/VAxisLength);
 										textureT[1]=(float)(currentTexMatrix.getVAxisY()/VAxisLength);
 										textureT[2]=(float)(currentTexMatrix.getVAxisZ()/VAxisLength);
-										float textureShiftT=currentTexMatrix.getVShift();
+										double originShiftT=((currentTexMatrix.getVAxisX()/VAxisLength)*origin[X]+(currentTexMatrix.getVAxisY()/VAxisLength)*origin[Y]+(currentTexMatrix.getVAxisZ()/VAxisLength)*origin[Z])/texScaleT;
+										float textureShiftT=currentTexMatrix.getVShift()-(float)originShiftT;
 										float texRot=0; // In compiled maps this is calculated into the U and V axes, so set it to 0 until I can figure out a good way to determine a better value.
-										float texScaleX=(float)(1/UAxisLength);// Let's use these values using the lengths of the U and V axes we found above.
-										float texScaleY=(float)(1/VAxisLength);
 										int flags=currentFace.getType(); // This is actually a set of flags. Whatever.
 										String material=myL3.getMaterial(currentFace.getMaterial());
 										float lgtScale=16; // These values are impossible to get from a compiled map since they
 										float lgtRot=0;    // are used by RAD for generating lightmaps, then are discarded, I believe.
 										try {
 											brushSides[l]=new MAPBrushSide(plane, texture, textureS, textureShiftS, textureT, textureShiftT,
-										                                          texRot, texScaleX, texScaleY, flags, material, lgtScale, lgtRot);
+										                                          texRot, texScaleS, texScaleT, flags, material, lgtScale, lgtRot);
 										} catch(InvalidMAPBrushSideException e) {
 											System.out.println("Error creating brush side "+l+" on brush "+k+" in leaf "+j+" in model "+i+", side not written.");
 										}
