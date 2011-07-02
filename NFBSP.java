@@ -1311,6 +1311,12 @@ public class NFBSP {
 		return out;
 	}
 	
+	// +dotProduct()
+	// Takes two Vertex objects which are read as vectors, then returns the dot product
+	private static double dotProduct(Vertex first, Vertex second) {
+		return (first.getX()*second.getX())+(first.getY()*second.getY())+(first.getZ()*second.getZ());
+	}
+	
 	// ACCESSORS/MUTATORS
 	public boolean isModified() {
 		return modified;
