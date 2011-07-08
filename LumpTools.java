@@ -25,13 +25,13 @@ public class LumpTools {
 		// every time and only needs to be fixed once.
 		NFBSP myBSP = new NFBSP(filepath);
 
-		//System.out.print("Path to other lumps folder: ");
-		//String otherfilepath=keyboard.nextLine();
+		System.out.print("Path to other lumps folder: ");
+		String otherfilepath=keyboard.nextLine();
 		
-		//NFBSP otherBSP = new NFBSP(otherfilepath);
+		NFBSP otherBSP = new NFBSP(otherfilepath);
 		
-		//System.out.println("\nCombining BSP data...");
-		//myBSP.combineBSP(otherBSP);
+		System.out.println("\nCombining BSP data...");
+		myBSP.combineBSP(otherBSP);
 		
 		// Force planar decompilation
 		/*for(int i=0;i<myBSP.getLump09().getNumElements();i++) {
