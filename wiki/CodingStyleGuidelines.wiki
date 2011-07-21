@@ -90,7 +90,7 @@ public class ClassnameStartingCapitalizedLikeEveryOtherClassInJava {
 		   unless it's a big block
 		   of broken code or something,
 		   in which case explain. */
-		// No, use somments
+		// No, use comments
 		// like
 		// this
 		// for normal things.
