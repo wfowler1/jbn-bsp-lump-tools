@@ -2,9 +2,11 @@
 
 = Introduction =
 
-As the decompiler is now in nearly perfect shape, it's time to make a compatibility list. Below is a list of maps and their optimal decompiler options. Note: There might be a coefficient that works better than the one listed here.
+As the decompiler is now in nearly perfect shape, it's time to make a compatibility list. Below is a list of maps and their optimal decompiler options.
 
 One thing to keep in mind, although 87 or 72 bad solids may sound like a lot, compared to the several thousand solids in the entire level this is a relatively small number.
+
+Note: There might be a coefficient that works better than the one listed here. Also, when using a coefficient of 1, round-off errors may cause solids to not line up properly. Use a larger coefficient if necessary (such as 10 or 100).
 
 = Details =
 
