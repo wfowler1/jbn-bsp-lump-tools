@@ -99,6 +99,10 @@ public class NFBSP {
 	public final int Y=1;
 	public final int Z=2;
 	
+	public final int PITCH=0;
+	public final int YAW=1;
+	public final int ROLL=2;
+	
 	// This allows us to get the name of the lump using its index.
 	public static final String[] LUMPNAMES = {"Entities", "Planes", "Textures", "Materials", "Vertices", "Normals", "Indices", "Visibility", "Nodes", "Faces",
 	                             "Lighting", "Leaves", "Mark Surfaces", "Mark Brushes", "Models", "Brushes", "Brushsides", "Texmatrix"};
@@ -180,6 +184,382 @@ public class NFBSP {
 	}
 	
 	// METHODS
+	
+	// Flippers
+	// These flip everything in the BSP over an axis, for the lolz of it. This will leave
+	// lighting and visibility data intact.
+	
+	// +flipX()
+	// Flips the entire BSP over the X axis.
+	public void flipX() {
+		// Entities
+		for(int i=0;i<myL0.getNumElements();i++) {
+			double[] origin=myL0.getEntity(i).getOrigin();
+			if(origin[X]!=0) {
+				origin[X]=-origin[X];
+				myL0.getEntity(i).setOrigin(origin);
+			}
+			/* TODO
+			double[] angles=myL0.getEntity(i).getAngles();
+			if(angles[ROLL]>=180) {
+				angles[ROLL]-=180;
+			} else {
+				angles[ROLL]+=180;
+			}
+			myL0.getEntity(i).setAngles(angles);
+			*/
+		}
+		// Planes
+		for(int i=0;i<myL1.getNumElements();i++) {
+			myL1.getPlane(i).setA(-myL1.getPlane(i).getA());
+		}
+		// Vertices
+		for(int i=0;i<myL4.getNumElements();i++) {
+			myL4.getVertex(i).setX(-myL4.getVertex(i).getX());
+		}
+		// Nodes
+		for(int i=0;i<myL8.getNumElements();i++) {
+			float min=myL8.getNode(i).getMinX();
+			float max=myL8.getNode(i).getMaxX();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL8.getNode(i).setMinX(-max);
+			myL8.getNode(i).setMaxX(-min);
+		}
+		// Leaves
+		for(int i=0;i<myL11.getNumElements();i++) {
+			float min=myL11.getLeaf(i).getMinX();
+			float max=myL11.getLeaf(i).getMaxX();
+			// Since Leafs use a mins/maxs system, they need to be swapped once inverted
+			myL11.getLeaf(i).setMinX(-max);
+			myL11.getLeaf(i).setMaxX(-min);
+		}
+		// Models
+		for(int i=0;i<myL14.getNumElements();i++) {
+			float min=myL14.getModel(i).getMinX();
+			float max=myL14.getModel(i).getMaxX();
+			// Since Models use a mins/maxs system, they need to be swapped once inverted
+			myL14.getModel(i).setMinX(-max);
+			myL14.getModel(i).setMaxX(-min);
+		}
+		// Texture Matrices
+		for(int i=0;i<myL17.getNumElements();i++) {
+			myL17.getTexMatrix(i).setUAxisX(-myL17.getTexMatrix(i).getUAxisX());
+			myL17.getTexMatrix(i).setVAxisX(-myL17.getTexMatrix(i).getVAxisX());
+		}
+	}
+
+	// +flipY()
+	// Flips the entire BSP over the Y axis.
+	public void flipY() {
+		// Entities
+		for(int i=0;i<myL0.getNumElements();i++) {
+			double[] origin=myL0.getEntity(i).getOrigin();
+			if(origin[Y]!=0) {
+				origin[Y]=-origin[Y];
+				myL0.getEntity(i).setOrigin(origin);
+			}
+			/* TODO
+			double[] angles=myL0.getEntity(i).getAngles();
+			if(angles[ROLL]>=180) {
+				angles[ROLL]-=180;
+			} else {
+				angles[ROLL]+=180;
+			}
+			myL0.getEntity(i).setAngles(angles);
+			*/
+		}
+		// Planes
+		for(int i=0;i<myL1.getNumElements();i++) {
+			myL1.getPlane(i).setB(-myL1.getPlane(i).getB());
+		}
+		// Vertices
+		for(int i=0;i<myL4.getNumElements();i++) {
+			myL4.getVertex(i).setY(-myL4.getVertex(i).getY());
+		}
+		// Nodes
+		for(int i=0;i<myL8.getNumElements();i++) {
+			float min=myL8.getNode(i).getMinY();
+			float max=myL8.getNode(i).getMaxY();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL8.getNode(i).setMinY(-max);
+			myL8.getNode(i).setMaxY(-min);
+		}
+		// Leaves
+		for(int i=0;i<myL11.getNumElements();i++) {
+			float min=myL11.getLeaf(i).getMinY();
+			float max=myL11.getLeaf(i).getMaxY();
+			// Since Leafs use a mins/maxs system, they need to be swapped once inverted
+			myL11.getLeaf(i).setMinY(-max);
+			myL11.getLeaf(i).setMaxY(-min);
+		}
+		// Models
+		for(int i=0;i<myL14.getNumElements();i++) {
+			float min=myL14.getModel(i).getMinY();
+			float max=myL14.getModel(i).getMaxY();
+			// Since Models use a mins/maxs system, they need to be swapped once inverted
+			myL14.getModel(i).setMinY(-max);
+			myL14.getModel(i).setMaxY(-min);
+		}
+		// Texture Matrices
+		for(int i=0;i<myL17.getNumElements();i++) {
+			myL17.getTexMatrix(i).setUAxisY(-myL17.getTexMatrix(i).getUAxisY());
+			myL17.getTexMatrix(i).setVAxisY(-myL17.getTexMatrix(i).getVAxisY());
+		}
+	}
+	
+	// +flipZ()
+	// Flips the entire BSP over the Z axis.
+	public void flipZ() {
+		// Entities
+		for(int i=0;i<myL0.getNumElements();i++) {
+			double[] origin=myL0.getEntity(i).getOrigin();
+			if(origin[Z]!=0) {
+				origin[Z]=-origin[Z];
+				myL0.getEntity(i).setOrigin(origin);
+			}
+			/* TODO
+			double[] angles=myL0.getEntity(i).getAngles();
+			if(angles[ROLL]>=180) {
+				angles[ROLL]-=180;
+			} else {
+				angles[ROLL]+=180;
+			}
+			myL0.getEntity(i).setAngles(angles);
+			*/
+		}
+		// Planes
+		for(int i=0;i<myL1.getNumElements();i++) {
+			myL1.getPlane(i).setC(-myL1.getPlane(i).getC());
+		}
+		// Vertices
+		for(int i=0;i<myL4.getNumElements();i++) {
+			myL4.getVertex(i).setZ(-myL4.getVertex(i).getZ());
+		}
+		// Nodes
+		for(int i=0;i<myL8.getNumElements();i++) {
+			float min=myL8.getNode(i).getMinZ();
+			float max=myL8.getNode(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL8.getNode(i).setMinZ(-max);
+			myL8.getNode(i).setMaxZ(-min);
+		}
+		// Leaves
+		for(int i=0;i<myL11.getNumElements();i++) {
+			float min=myL11.getLeaf(i).getMinZ();
+			float max=myL11.getLeaf(i).getMaxZ();
+			// Since Leafs use a mins/maxs system, they need to be swapped once inverted
+			myL11.getLeaf(i).setMinZ(-max);
+			myL11.getLeaf(i).setMaxZ(-min);
+		}
+		// Models
+		for(int i=0;i<myL14.getNumElements();i++) {
+			float min=myL14.getModel(i).getMinZ();
+			float max=myL14.getModel(i).getMaxZ();
+			// Since Models use a mins/maxs system, they need to be swapped once inverted
+			myL14.getModel(i).setMinZ(-max);
+			myL14.getModel(i).setMaxZ(-min);
+		}
+		// Texture Matrices
+		for(int i=0;i<myL17.getNumElements();i++) {
+			myL17.getTexMatrix(i).setUAxisZ(-myL17.getTexMatrix(i).getUAxisZ());
+			myL17.getTexMatrix(i).setVAxisZ(-myL17.getTexMatrix(i).getVAxisZ());
+		}
+	}
+	
+	// Swaps
+	// These swap two of the coordinate components, XY, XZ, or YZ.
+	
+	// swapXY()
+	// Swaps the X and Y components of all map structures
+	public void swapXY() {
+		// Entities
+		for(int i=0;i<myL0.getNumElements();i++) {
+			double[] origin=myL0.getEntity(i).getOrigin();
+			double temp=origin[Y];
+			origin[Y]=origin[X];
+			origin[X]=temp;
+			myL0.getEntity(i).setOrigin(origin);
+		}
+		// Planes
+		for(int i=0;i<myL1.getNumElements();i++) {
+			float temp=myL1.getPlane(i).getB();
+			myL1.getPlane(i).setB(myL1.getPlane(i).getA());
+			myL1.getPlane(i).setA(temp);
+		}
+		// Vertices
+		for(int i=0;i<myL4.getNumElements();i++) {
+			float temp=myL4.getVertex(i).getY();
+			myL4.getVertex(i).setY(myL4.getVertex(i).getX());
+			myL4.getVertex(i).setX(temp);
+		}
+		// Nodes
+		for(int i=0;i<myL8.getNumElements();i++) {
+			float min=myL8.getNode(i).getMinY();
+			float max=myL8.getNode(i).getMaxY();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL8.getNode(i).setMinY(myL8.getNode(i).getMinX());
+			myL8.getNode(i).setMaxY(myL8.getNode(i).getMaxX());
+			myL8.getNode(i).setMinX(min);
+			myL8.getNode(i).setMaxX(max);
+		}
+		// Leaves
+		for(int i=0;i<myL11.getNumElements();i++) {
+			float min=myL11.getLeaf(i).getMinY();
+			float max=myL11.getLeaf(i).getMaxY();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL11.getLeaf(i).setMinY(myL11.getLeaf(i).getMinX());
+			myL11.getLeaf(i).setMaxY(myL11.getLeaf(i).getMaxX());
+			myL11.getLeaf(i).setMinX(min);
+			myL11.getLeaf(i).setMaxX(max);
+		}
+		// Models
+		for(int i=0;i<myL14.getNumElements();i++) {
+			float min=myL14.getModel(i).getMinY();
+			float max=myL14.getModel(i).getMaxY();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL14.getModel(i).setMinY(myL14.getModel(i).getMinX());
+			myL14.getModel(i).setMaxY(myL14.getModel(i).getMaxX());
+			myL14.getModel(i).setMinX(min);
+			myL14.getModel(i).setMaxX(max);
+		}
+		// Texture Matrices
+		for(int i=0;i<myL17.getNumElements();i++) {
+			float tempU=myL17.getTexMatrix(i).getUAxisY();
+			float tempV=myL17.getTexMatrix(i).getVAxisY();
+			myL17.getTexMatrix(i).setUAxisY(myL17.getTexMatrix(i).getUAxisX());
+			myL17.getTexMatrix(i).setVAxisY(myL17.getTexMatrix(i).getVAxisX());
+			myL17.getTexMatrix(i).setUAxisX(tempU);
+			myL17.getTexMatrix(i).setVAxisX(tempV);
+		}
+	}
+	
+	// swapXZ()
+	// Swaps the X and Z components of all map structures
+	public void swapXZ() {
+		// Entities
+		for(int i=0;i<myL0.getNumElements();i++) {
+			double[] origin=myL0.getEntity(i).getOrigin();
+			double temp=origin[Z];
+			origin[Z]=origin[X];
+			origin[X]=temp;
+			myL0.getEntity(i).setOrigin(origin);
+		}
+		// Planes
+		for(int i=0;i<myL1.getNumElements();i++) {
+			float temp=myL1.getPlane(i).getC();
+			myL1.getPlane(i).setC(myL1.getPlane(i).getA());
+			myL1.getPlane(i).setA(temp);
+		}
+		// Vertices
+		for(int i=0;i<myL4.getNumElements();i++) {
+			float temp=myL4.getVertex(i).getZ();
+			myL4.getVertex(i).setZ(myL4.getVertex(i).getX());
+			myL4.getVertex(i).setX(temp);
+		}
+		// Nodes
+		for(int i=0;i<myL8.getNumElements();i++) {
+			float min=myL8.getNode(i).getMinZ();
+			float max=myL8.getNode(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL8.getNode(i).setMinZ(myL8.getNode(i).getMinX());
+			myL8.getNode(i).setMaxZ(myL8.getNode(i).getMaxX());
+			myL8.getNode(i).setMinX(min);
+			myL8.getNode(i).setMaxX(max);
+		}
+		// Leaves
+		for(int i=0;i<myL11.getNumElements();i++) {
+			float min=myL11.getLeaf(i).getMinZ();
+			float max=myL11.getLeaf(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL11.getLeaf(i).setMinZ(myL11.getLeaf(i).getMinX());
+			myL11.getLeaf(i).setMaxZ(myL11.getLeaf(i).getMaxX());
+			myL11.getLeaf(i).setMinX(min);
+			myL11.getLeaf(i).setMaxX(max);
+		}
+		// Models
+		for(int i=0;i<myL14.getNumElements();i++) {
+			float min=myL14.getModel(i).getMinZ();
+			float max=myL14.getModel(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL14.getModel(i).setMinZ(myL14.getModel(i).getMinX());
+			myL14.getModel(i).setMaxZ(myL14.getModel(i).getMaxX());
+			myL14.getModel(i).setMinX(min);
+			myL14.getModel(i).setMaxX(max);
+		}
+		// Texture Matrices
+		for(int i=0;i<myL17.getNumElements();i++) {
+			float tempU=myL17.getTexMatrix(i).getUAxisZ();
+			float tempV=myL17.getTexMatrix(i).getVAxisZ();
+			myL17.getTexMatrix(i).setUAxisZ(myL17.getTexMatrix(i).getUAxisX());
+			myL17.getTexMatrix(i).setVAxisZ(myL17.getTexMatrix(i).getVAxisX());
+			myL17.getTexMatrix(i).setUAxisX(tempU);
+			myL17.getTexMatrix(i).setVAxisX(tempV);
+		}
+	}
+	
+	// swapYZ()
+	// Swaps the Y and Z components of all map structures
+	public void swapYZ() {
+		// Entities
+		for(int i=0;i<myL0.getNumElements();i++) {
+			double[] origin=myL0.getEntity(i).getOrigin();
+			double temp=origin[Z];
+			origin[Z]=origin[Y];
+			origin[Y]=temp;
+			myL0.getEntity(i).setOrigin(origin);
+		}
+		// Planes
+		for(int i=0;i<myL1.getNumElements();i++) {
+			float temp=myL1.getPlane(i).getC();
+			myL1.getPlane(i).setC(myL1.getPlane(i).getB());
+			myL1.getPlane(i).setB(temp);
+		}
+		// Vertices
+		for(int i=0;i<myL4.getNumElements();i++) {
+			float temp=myL4.getVertex(i).getZ();
+			myL4.getVertex(i).setZ(myL4.getVertex(i).getY());
+			myL4.getVertex(i).setY(temp);
+		}
+		// Nodes
+		for(int i=0;i<myL8.getNumElements();i++) {
+			float min=myL8.getNode(i).getMinZ();
+			float max=myL8.getNode(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL8.getNode(i).setMinZ(myL8.getNode(i).getMinY());
+			myL8.getNode(i).setMaxZ(myL8.getNode(i).getMaxY());
+			myL8.getNode(i).setMinY(min);
+			myL8.getNode(i).setMaxY(max);
+		}
+		// Leaves
+		for(int i=0;i<myL11.getNumElements();i++) {
+			float min=myL11.getLeaf(i).getMinZ();
+			float max=myL11.getLeaf(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL11.getLeaf(i).setMinZ(myL11.getLeaf(i).getMinY());
+			myL11.getLeaf(i).setMaxZ(myL11.getLeaf(i).getMaxY());
+			myL11.getLeaf(i).setMinY(min);
+			myL11.getLeaf(i).setMaxY(max);
+		}
+		// Models
+		for(int i=0;i<myL14.getNumElements();i++) {
+			float min=myL14.getModel(i).getMinZ();
+			float max=myL14.getModel(i).getMaxZ();
+			// Since Nodes use a mins/maxs system, they need to be swapped once inverted
+			myL14.getModel(i).setMinZ(myL14.getModel(i).getMinY());
+			myL14.getModel(i).setMaxZ(myL14.getModel(i).getMaxY());
+			myL14.getModel(i).setMinY(min);
+			myL14.getModel(i).setMaxY(max);
+		}
+		// Texture Matrices
+		for(int i=0;i<myL17.getNumElements();i++) {
+			float tempU=myL17.getTexMatrix(i).getUAxisZ();
+			float tempV=myL17.getTexMatrix(i).getVAxisZ();
+			myL17.getTexMatrix(i).setUAxisZ(myL17.getTexMatrix(i).getUAxisY());
+			myL17.getTexMatrix(i).setVAxisZ(myL17.getTexMatrix(i).getVAxisY());
+			myL17.getTexMatrix(i).setUAxisY(tempU);
+			myL17.getTexMatrix(i).setVAxisY(tempV);
+		}
+	}
 	
 	// +optimizeBSP()
 	// This method will search through the entire BSP for duplicate
