@@ -18,6 +18,10 @@ public class Entity {
 	private String[] attributes;
 	private int numAttributes=0;
 	
+	public static int X=0;
+	public static int Y=1;
+	public static int Z=2;
+	
 	// CONSTRUCTORS
 	
 	public Entity(byte[] in) {
@@ -35,8 +39,11 @@ public class Entity {
 	// METHODS
 	
 	// deleteAttribute(String)
-	// Deletes the specified attribute from the attributes list. If it wasn't found it does nothing.
-	public void deleteAttribute(String attribute) {
+	// Takes: String (attribute to delete)
+	// Returns: Success boolean (in case the attribute wasn't found)
+	// Deletes the specified attribute from the attributes list. If it wasn't found it does nothing. If there
+	// are duplicates this only deletes the first one. Just while loop it. while(deleteAttribute("Attribute");
+	public boolean deleteAttribute(String attribute) {
 		int index=0;
 		boolean found=false;
 		for(index=0;index<numAttributes;index++) {
@@ -51,7 +58,15 @@ public class Entity {
 		}
 		if (found) {
 			deleteAttribute(index);
+			return true;
 		}
+		return false;
+	}
+	
+	// deleteAllOfAttribute(String)
+	// Deletes all instances of specified attribute.
+	public void deleteAllOfAttribute(String attribute) {
+		while(deleteAttribute(attribute));
 	}
 	
 	// deleteAttribute(int)
@@ -141,15 +156,15 @@ public class Entity {
 	// +isBrushBased()
 	// Reads the first character of the model attribute. If it's *, then it's a brush
 	// based entity and this method returns true. If not, it returns false.
+	// The worldspawn entity is also considered brush-based since it's model can be assumed
+	// to be 0.
 	public boolean isBrushBased() {
 		try {
-			return (getAttribute("model").charAt(0)=='*');
+			return ((getAttribute("model").charAt(0)=='*') || (getAttribute("classname").equalsIgnoreCase("worldspawn")));
 		} catch(java.lang.StringIndexOutOfBoundsException e) { // The entity has no "model"
 			return false;
 		}
 	}
-	
-	// ACCESSORS/MUTATORS
 	
 	// +setData(String)
 	// Used by constructors and can be used by outside classes to set or change the data
@@ -232,21 +247,25 @@ public class Entity {
 	// setAttribute()
 	// Set an attribute. If it doesn't exist, it is added. If it does, it is
 	// overwritten with the new one, since that's much easier to do than edit
-	// the preexisting one.
+	// the preexisting one. If "value" is empty the attribute is deleted.
 	public void setAttribute(String attribute, String value) {
 		boolean done=false;
-		for(int i=0;i<numAttributes && !done;i++) {
-			try {
-				if(attributes[i].substring(0,attribute.length()+2).compareToIgnoreCase("\""+attribute+"\"")==0) {
-					attributes[i]="\""+attribute+"\" \""+value+"\"";
-					done=true;
+		if(value.length()>0) {
+			for(int i=0;i<numAttributes && !done;i++) {
+				try {
+					if(attributes[i].substring(0,attribute.length()+2).compareToIgnoreCase("\""+attribute+"\"")==0) {
+						attributes[i]="\""+attribute+"\" \""+value+"\"";
+						done=true;
+					}
+				} catch(StringIndexOutOfBoundsException e) {
+					;
 				}
-			} catch(StringIndexOutOfBoundsException e) {
-				;
 			}
-		}
-		if(!done) {
-			addAttribute(attribute, value);
+			if(!done) {
+				addAttribute(attribute, value);
+			}
+		} else { // If value is empty
+			deleteAllOfAttribute(attribute);
 		}
 	}
 	
@@ -259,11 +278,64 @@ public class Entity {
 		if(!getAttribute("origin").equals("")) {
 			String origin=getAttribute("origin");
 			Scanner numGetter=new Scanner(origin);
-			for(int i=0;i<3&&numGetter.hasNext();i++) {
+			for(int i=0;i<3&&numGetter.hasNext();i++) { // If the origin attribute is empty (doesn't exist) this will do nothing
 				output[i]=numGetter.nextDouble();
 			}
 		}
-		return output;
+		return output; // If origin didn't exist, this returns (0,0,0)
+	}
+	
+	// setOrigin()
+	// Sets the three components of the entity's "origin" attribute to an array
+	// of three doubles.
+	public void setOrigin(double[] in) {
+		String origin="";
+		if(in.length>=3) {
+			origin=in[X]+" "+in[Y]+" "+in[Z];
+		} else {
+			if(in.length==2) {
+				origin=in[X]+" "+in[Y];
+			} else {
+				if(in.length==1) {
+					origin=Double.toString(in[X]);
+				}
+			}
+		}
+		setAttribute("origin", origin);
+	}
+	
+	// getAngles()
+	// Returns the three components of the entity's "angles" attribute as an array
+	// of three doubles.
+	public double[] getAngles() {
+		double[] output=new double[3]; // initializes to {0,0,0}
+		if(!getAttribute("angles").equals("")) {
+			String angles=getAttribute("angles");
+			Scanner numGetter=new Scanner(angles);
+			for(int i=0;i<3&&numGetter.hasNext();i++) { // If the angles attribute is empty (doesn't exist) this will do nothing
+				output[i]=numGetter.nextDouble();
+			}
+		}
+		return output; // If angles didn't exist, this returns (0,0,0)
+	}
+	
+	// setAngles()
+	// Sets the three components of the entity's "angles" attribute to an array
+	// of three doubles.
+	public void setAngles(double[] in) {
+		String angles="";
+		if(in.length>=3) {
+			angles=in[X]+" "+in[Y]+" "+in[Z];
+		} else {
+			if(in.length==2) {
+				angles=in[X]+" "+in[Y];
+			} else {
+				if(in.length==1) {
+					angles=Double.toString(in[X]);
+				}
+			}
+		}
+		setAttribute("angles", angles);
 	}
 	
 	// getNumAttributes()
