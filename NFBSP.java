@@ -578,12 +578,12 @@ public class NFBSP {
 	// being finalized or almost ready for release, or for combined maps.
 	public void optimizeBSP() {
 		// One lump at a time, in order of lumps. If a lump cannot be
-		// optimized, and explanation is provided.
+		// optimized, an explanation is provided.
 		
 		System.out.println("\nOptimizing entities...");
 		optimizeEntities(); // Every entitiy is unique and cannot be optimized. However, some
 		                    // attributes are superfluous ("angles" "0 0 0") and some are
-								  // only used by Gearcraft ("sequencename", oven compile options).
+								  // only used by Gearcraft (oven compile options).
 								  // These can be safely deleted with no ingame consequences.
 		System.out.println("Optimizing planes...");
 		optimizePlanes();
@@ -593,7 +593,7 @@ public class NFBSP {
 		System.out.println("Optimizing materials...");
 		optimizeMaterials();
 		// Vertices are referenced in index/item pairs, with insufficient redundancy
-		// Normals cannot be recycled as the lump must be the same size as vertices
+		optimizeNormals(); // I don't think this causes problems, Ford said he saw huge slowdowns but I don't.
 		System.out.println("Optimizing meshes...");
 		//optimizeMeshes();
 		alternativeOptimizeMeshes();
@@ -620,25 +620,32 @@ public class NFBSP {
 	// editor, such as sequencename and oven compile options.
 	public void optimizeEntities() {
 		int numEnts=myL0.getNumElements();
-		for(int i=0;i<numEnts;i++) {
-			if(myL0.getEntity(i).getAttribute("origin").equals("0 0 0")) {
-				myL0.getEntity(i).deleteAttribute("origin");
+		try {
+			for(int i=0;i<numEnts;i++) {
+				if(myL0.getEntity(i).getAttribute("origin").equals("0 0 0")) {
+					myL0.getEntity(i).deleteAttribute("origin");
+				}
+				if(myL0.getEntity(i).getAttribute("angles").equals("0 0 0")) {
+					myL0.getEntity(i).deleteAttribute("angles");
+				}
+				if(myL0.getEntity(i).getAttribute("classname").equals("multi_manager")) {
+					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map.
+				}
+				if(myL0.getEntity(i).getAttribute("classname").equals("env_fade")) {
+					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map.
+				}
+				if(myL0.getEntity(i).getAttribute("classname").equals("multisource")) {
+					myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multisources no longer need to be within a map.
+				}
+				if((myL0.getEntity(i).getAttribute("classname").equals("light")) || (myL0.getEntity(i).getAttribute("classname").equals("light_spot")) && (myL0.getEntity(i).getAttribute("targetname").equals(""))) {
+					myL0.delete(i);
+					i--;
+				}
+				// myL0.deleteAllWithAttribute("classname", "useless");
 			}
-			if(myL0.getEntity(i).getAttribute("angles").equals("0 0 0")) {
-				myL0.getEntity(i).deleteAttribute("angles");
-			}
-			if(myL0.getEntity(i).getAttribute("classname").equals("multi_manager")) {
-				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multi_managers no longer need to be within a map.
-			}
-			if(myL0.getEntity(i).getAttribute("classname").equals("env_fade")) {
-				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, env_fades no longer need to be within a map.
-			}
-			if(myL0.getEntity(i).getAttribute("classname").equals("multisource")) {
-				myL0.getEntity(i).deleteAttribute("origin"); // Especially after compile, multisources no longer need to be within a map.
-			}
-			myL0.getEntity(i).deleteAttribute("sequencename");
+		} catch(java.lang.ArrayIndexOutOfBoundsException e) {
+			; // This could happen if an entire entity gets deleted, and the loop therefore goes off the end of the array. Do nothing.
 		}
-		// myL0.deleteAllWithAttribute("classname", "useless");
 	}
 	
 	// optimizePlanes()
@@ -751,6 +758,13 @@ public class NFBSP {
 			}
 		}
 		System.out.println(numDeldMats+" duplicate materials deleted.");
+	}
+	
+	// optimizeNormals()
+	// Just delete this bullcrap
+	public void optimizeNormals() {
+		myL5.setLength(0);
+		System.out.println("Deleting normals lump, 0 bytes.");
 	}
 	
 	// optimizeMeshes()
@@ -882,12 +896,12 @@ public class NFBSP {
 						myL7.delete(j); // Delete the duplicate PVS
 						numDeldPVS++;
 						numPVS--;
-						for(int k=0;k<myL11.getNumElements();k++) {
-							if(myL11.getLeaf(k).getPVS()>j*lengthOfPVS) {
-								myL11.getLeaf(k).setPVS(myL11.getLeaf(k).getPVS()-lengthOfPVS);
-							} else {
-								if(myL11.getLeaf(k).getPVS()==j*lengthOfPVS) {
-									myL11.getLeaf(k).setPVS(i*lengthOfPVS);
+						for(int k=0;k<myL11.getNumElements();k++) { // for every leaf
+							if(myL11.getLeaf(k).getPVS()>j*lengthOfPVS) { // If the PVS is after the deleted one
+								myL11.getLeaf(k).setPVS(myL11.getLeaf(k).getPVS()-lengthOfPVS); // Adjust the offset
+							} else { // PVS is before or equal to deleted one
+								if(myL11.getLeaf(k).getPVS()==j*lengthOfPVS) { // PVS is the deleted one
+									myL11.getLeaf(k).setPVS(i*lengthOfPVS); // Set PVS to the equivalent one
 								}
 							}
 						}
