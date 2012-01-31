@@ -155,6 +155,7 @@ public class Lump07 {
 	
 	// Returns the number of visibility groups, or PVSes.
 	public int getNumElements() {
+		lengthOfData=getLengthOfData();
 		if(numPVS==-1) {
 			try {
 				return (int)data.length()/lengthOfData;
@@ -176,7 +177,7 @@ public class Lump07 {
 			byte[] lenL07AsByteArray=new byte[4];
 			lump07LengthGrabber.skip(100);
 			lump07LengthGrabber.read(lenL07AsByteArray);
-			int lenL07 = lenL07AsByteArray[0] + lenL07AsByteArray[1]*256 + lenL07AsByteArray[2]*65536 + lenL07AsByteArray[3]*16777216;
+			int lenL07 = (lenL07AsByteArray[3] << 24) | ((lenL07AsByteArray[2] & 0xff) << 16) | ((lenL07AsByteArray[1] & 0xff) << 8) | (lenL07AsByteArray[0] & 0xff);
 			lump07LengthGrabber.close();
 			if(lenL07==(int)0xFFFFFFFF) {
 				return 0;
