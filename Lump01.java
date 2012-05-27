@@ -53,20 +53,30 @@ public class Lump01 {
 		}
 	}
 	
+	public Lump01(byte[] in) {
+		int offset=0;
+		numPlns=in.length/20;
+		planes=new Plane[numPlns];
+		for(int i=0;i<numPlns;i++) {
+			byte[] planeBytes=new byte[20];
+			for(int j=0;j<20;j++) {
+				planeBytes[j]=in[offset+j];
+			}
+			planes[i]=new Plane(planeBytes);
+			offset+=20;
+		}
+	}
+	
 	// METHODS
 	
 	// -populatePlaneList()
 	// Parses all data into an array of Plane.
 	private void populatePlaneList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numPlns;i++) {
-				byte[] datain=new byte[20];
-				reader.read(datain);
-				planes[i]=new Plane(datain);
-			}
-		} catch(InvalidPlaneException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last plane.");
+		for(int i=0;i<numPlns;i++) {
+			byte[] datain=new byte[20];
+			reader.read(datain);
+			planes[i]=new Plane(datain);
 		}
 		reader.close();
 	}
@@ -133,40 +143,46 @@ public class Lump01 {
 				newFile.createNewFile();
 			}
 			FileOutputStream planeWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numPlns*20];
-			for(int i=0;i<numPlns;i++) {
-				// This is MUCH FASTER than using a DataOutputStream
-				int out=Float.floatToRawIntBits(planes[i].getA());
-				data[(i*20)+3]=(byte)((out >> 24) & 0xFF);
-				data[(i*20)+2]=(byte)((out >> 16) & 0xFF);
-				data[(i*20)+1]=(byte)((out >> 8) & 0xFF);
-				data[i*20]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(planes[i].getB());
-				data[(i*20)+7]=(byte)((out >> 24) & 0xFF);
-				data[(i*20)+6]=(byte)((out >> 16) & 0xFF);
-				data[(i*20)+5]=(byte)((out >> 8) & 0xFF);
-				data[(i*20)+4]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(planes[i].getC());
-				data[(i*20)+11]=(byte)((out >> 24) & 0xFF);
-				data[(i*20)+10]=(byte)((out >> 16) & 0xFF);
-				data[(i*20)+9]=(byte)((out >> 8) & 0xFF);
-				data[(i*20)+8]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(planes[i].getDist());
-				data[(i*20)+15]=(byte)((out >> 24) & 0xFF);
-				data[(i*20)+14]=(byte)((out >> 16) & 0xFF);
-				data[(i*20)+13]=(byte)((out >> 8) & 0xFF);
-				data[(i*20)+12]=(byte)((out >> 0) & 0xFF);
-				out=planes[i].getType();
-				data[(i*20)+19]=(byte)((out >> 24) & 0xFF);
-				data[(i*20)+18]=(byte)((out >> 16) & 0xFF);
-				data[(i*20)+17]=(byte)((out >> 8) & 0xFF);
-				data[(i*20)+16]=(byte)((out >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
+			
 			planeWriter.write(data);
 			planeWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
+	}
+	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numPlns*20];
+		for(int i=0;i<numPlns;i++) {
+			// This is MUCH FASTER than using a DataOutputStream
+			int out=Float.floatToRawIntBits((float)planes[i].getA());
+			data[(i*20)+3]=(byte)((out >> 24) & 0xFF);
+			data[(i*20)+2]=(byte)((out >> 16) & 0xFF);
+			data[(i*20)+1]=(byte)((out >> 8) & 0xFF);
+			data[i*20]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits((float)planes[i].getB());
+			data[(i*20)+7]=(byte)((out >> 24) & 0xFF);
+			data[(i*20)+6]=(byte)((out >> 16) & 0xFF);
+			data[(i*20)+5]=(byte)((out >> 8) & 0xFF);
+			data[(i*20)+4]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits((float)planes[i].getC());
+			data[(i*20)+11]=(byte)((out >> 24) & 0xFF);
+			data[(i*20)+10]=(byte)((out >> 16) & 0xFF);
+			data[(i*20)+9]=(byte)((out >> 8) & 0xFF);
+			data[(i*20)+8]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits((float)planes[i].getDist());
+			data[(i*20)+15]=(byte)((out >> 24) & 0xFF);
+			data[(i*20)+14]=(byte)((out >> 16) & 0xFF);
+			data[(i*20)+13]=(byte)((out >> 8) & 0xFF);
+			data[(i*20)+12]=(byte)((out >> 0) & 0xFF);
+			out=planes[i].getType();
+			data[(i*20)+19]=(byte)((out >> 24) & 0xFF);
+			data[(i*20)+18]=(byte)((out >> 16) & 0xFF);
+			data[(i*20)+17]=(byte)((out >> 8) & 0xFF);
+			data[(i*20)+16]=(byte)((out >> 0) & 0xFF);
+		}
+		return data;
 	}
 	
 	// save()
@@ -179,7 +195,7 @@ public class Lump01 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numPlns*20;
 	}
 	
 	// Returns the number of planes.

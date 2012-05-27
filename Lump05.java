@@ -27,6 +27,10 @@ public class Lump05 {
 		length=(int)getLength();
 	}
 	
+	public Lump05(byte[] in) {
+		length=in.length;
+	}
+	
 	// METHODS
 	
 	// The add methods are completely unnecessary here, but here
@@ -57,6 +61,10 @@ public class Lump05 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		return new byte[length]; // Everything initiates to 0
+	}
+	
 	// save()
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
@@ -67,7 +75,7 @@ public class Lump05 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return length;
 	}
 	
 	// Since there is no data structure, this just returns 0.

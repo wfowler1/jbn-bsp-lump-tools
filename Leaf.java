@@ -45,10 +45,7 @@ public class Leaf {
 		numLeafBrush=inNumLeafBrush;
 	}
 	
-	public Leaf(int inType, int inPVS, float[] inMins, float[] inMaxs, int inLeafFace, int inNumLeafFace, int inLeafBrush, int inNumLeafBrush) throws InvalidLeafException {
-		if(inMins.length!=3 || inMaxs.length!=3) {
-			throw new InvalidLeafException();
-		}
+	public Leaf(int inType, int inPVS, float[] inMins, float[] inMaxs, int inLeafFace, int inNumLeafFace, int inLeafBrush, int inNumLeafBrush) {
 		type=inType;
 		PVS=inPVS;
 		mins=inMins;
@@ -61,10 +58,7 @@ public class Leaf {
 	
 	// This constructor takes 48 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Leaf(byte[] in) throws InvalidLeafException {
-		if(in.length!=48) {
-			throw new InvalidLeafException();
-		}
+	public Leaf(byte[] in) {
 		type=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		PVS=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 		int myInt=(in[11] << 24) | ((in[10] & 0xff) << 16) | ((in[9] & 0xff) << 8) | (in[8] & 0xff);

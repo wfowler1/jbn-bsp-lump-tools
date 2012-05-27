@@ -44,6 +44,20 @@ public class Lump15 {
 		}
 	}
 	
+	public Lump15(byte[] in) {
+		int offset=0;
+		numBrshs=in.length/12;
+		brushes=new Brush[numBrshs];
+		for(int i=0;i<numBrshs;i++) {
+			byte[] bytes=new byte[12];
+			for(int j=0;j<12;j++) {
+				bytes[j]=in[offset+j];
+			}
+			brushes[i]=new Brush(bytes);
+			offset+=12;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateBrushList()
@@ -51,16 +65,12 @@ public class Lump15 {
 	// of Brush objects
 	private void populateBrushList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numBrshs;i++) {
-				byte[] datain=new byte[12];
-				reader.read(datain);
-				brushes[i]=new Brush(datain);
-			}
-			reader.close();
-		} catch(InvalidBrushException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last brush.");
+		for(int i=0;i<numBrshs;i++) {
+			byte[] datain=new byte[12];
+			reader.read(datain);
+			brushes[i]=new Brush(datain);
 		}
+		reader.close();
 	}
 	
 	// add(Brush)
@@ -77,7 +87,7 @@ public class Lump15 {
 	
 	// add (int int int)
 	// Adds a brush defined by data alone. Still easy.
-	public void add(int inAttributes, int inFirstSide, int inNumSides) {
+	public void add(byte[] inAttributes, int inFirstSide, int inNumSides) {
 		add(new Brush(inAttributes, inFirstSide, inNumSides));
 	}
 	
@@ -111,22 +121,7 @@ public class Lump15 {
 				newFile.createNewFile();
 			}
 			FileOutputStream brushWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numBrshs*12];
-			for(int i=0;i<numBrshs;i++) {
-				// This is MUCH faster than using DataOutputStream. But you knew that already.
-				data[(i*12)+3]=(byte)((brushes[i].getAttributes() >> 24) & 0xFF);
-				data[(i*12)+2]=(byte)((brushes[i].getAttributes() >> 16) & 0xFF);
-				data[(i*12)+1]=(byte)((brushes[i].getAttributes() >> 8) & 0xFF);
-				data[i*12]=(byte)((brushes[i].getAttributes() >> 0) & 0xFF);
-				data[(i*12)+7]=(byte)((brushes[i].getFirstSide() >> 24) & 0xFF);
-				data[(i*12)+6]=(byte)((brushes[i].getFirstSide() >> 16) & 0xFF);
-				data[(i*12)+5]=(byte)((brushes[i].getFirstSide() >> 8) & 0xFF);
-				data[(i*12)+4]=(byte)((brushes[i].getFirstSide() >> 0) & 0xFF);
-				data[(i*12)+11]=(byte)((brushes[i].getNumSides() >> 24) & 0xFF);
-				data[(i*12)+10]=(byte)((brushes[i].getNumSides() >> 16) & 0xFF);
-				data[(i*12)+9]=(byte)((brushes[i].getNumSides() >> 8) & 0xFF);
-				data[(i*12)+8]=(byte)((brushes[i].getNumSides() >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
 			brushWriter.write(data);
 			brushWriter.close();
 		} catch(java.io.IOException e) {
@@ -134,6 +129,25 @@ public class Lump15 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numBrshs*12];
+		for(int i=0;i<numBrshs;i++) {
+			// This is MUCH faster than using DataOutputStream. But you knew that already.
+			data[(i*12)+3]=brushes[i].getAttributes()[3];
+			data[(i*12)+2]=brushes[i].getAttributes()[2];
+			data[(i*12)+1]=brushes[i].getAttributes()[1];
+			data[i*12]=brushes[i].getAttributes()[0];
+			data[(i*12)+7]=(byte)((brushes[i].getFirstSide() >> 24) & 0xFF);
+			data[(i*12)+6]=(byte)((brushes[i].getFirstSide() >> 16) & 0xFF);
+			data[(i*12)+5]=(byte)((brushes[i].getFirstSide() >> 8) & 0xFF);
+			data[(i*12)+4]=(byte)((brushes[i].getFirstSide() >> 0) & 0xFF);
+			data[(i*12)+11]=(byte)((brushes[i].getNumSides() >> 24) & 0xFF);
+			data[(i*12)+10]=(byte)((brushes[i].getNumSides() >> 16) & 0xFF);
+			data[(i*12)+9]=(byte)((brushes[i].getNumSides() >> 8) & 0xFF);
+			data[(i*12)+8]=(byte)((brushes[i].getNumSides() >> 0) & 0xFF);
+		}
+		return data;
+	}
 	// save()
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
@@ -144,7 +158,7 @@ public class Lump15 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numBrshs*12;
 	}
 	
 	// Returns the number of brushes.

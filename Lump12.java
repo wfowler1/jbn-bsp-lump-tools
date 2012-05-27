@@ -52,6 +52,20 @@ public class Lump12 {
 		numMSurfs=marksurfaces.length;
 	}
 	
+	public Lump12(byte[] in) {
+		int offset=0;
+		numMSurfs=in.length/4;
+		marksurfaces=new int[numMSurfs];
+		for(int i=0;i<numMSurfs;i++) {
+			byte[] bytes=new byte[4];
+			for(int j=0;j<4;j++) {
+				bytes[j]=in[offset+j];
+			}
+			marksurfaces[i]=(bytes[3] << 24) | ((bytes[2] & 0xff) << 16) | ((bytes[1] & 0xff) << 8) | (bytes[0] & 0xff);
+			offset+=4;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateMSurfList()
@@ -90,26 +104,31 @@ public class Lump12 {
 				newFile.createNewFile();
 			}
 			FileOutputStream mSurfaceWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numMSurfs*4];
-			for(int i=0;i<numMSurfs;i++) {
-				// This is MUCH faster than using DataOutputStream
-				data[(i*4)+3]=(byte)((marksurfaces[i] >> 24) & 0xFF);
-				data[(i*4)+2]=(byte)((marksurfaces[i] >> 16) & 0xFF);
-				data[(i*4)+1]=(byte)((marksurfaces[i] >> 8) & 0xFF);
-				data[i*4]=(byte)((marksurfaces[i] >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
 			mSurfaceWriter.write(data);
 			mSurfaceWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
 	}
+	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numMSurfs*4];
+		for(int i=0;i<numMSurfs;i++) {
+			// This is MUCH faster than using DataOutputStream
+			data[(i*4)+3]=(byte)((marksurfaces[i] >> 24) & 0xFF);
+			data[(i*4)+2]=(byte)((marksurfaces[i] >> 16) & 0xFF);
+			data[(i*4)+1]=(byte)((marksurfaces[i] >> 8) & 0xFF);
+			data[i*4]=(byte)((marksurfaces[i] >> 0) & 0xFF);
+		}
+		return data;
+	}
 		
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numMSurfs*4;
 	}
 	
 	// Returns the number of face indices. This lump is RETARDED.

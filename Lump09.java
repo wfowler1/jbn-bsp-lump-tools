@@ -69,20 +69,32 @@ public class Lump09 {
 		numFaces=faces.length;
 	}
 	
+	public Lump09(byte[] in, int numWorldFaces) {
+		int offset=0;
+		numFaces=in.length/48;
+		faces=new Face[numFaces];
+		for(int i=0;i<numFaces;i++) {
+			byte[] bytes=new byte[48];
+			for(int j=0;j<48;j++) {
+				bytes[j]=in[offset+j];
+			}
+			faces[i]=new Face(bytes);
+			offset+=48;
+		}
+		this.numWorldFaces=numWorldFaces;
+		this.numModelFaces=numFaces-numWorldFaces;
+	}
+	
 	// METHODS
 	
 	// -populateFaceList()
 	// Creates an array of all the faces in the lump using the instance data.
 	private void populateFaceList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numFaces;i++) {
-				byte[] datain=new byte[48];
-				reader.read(datain);
-				faces[i]=new Face(datain);
-			}
-		} catch(InvalidFaceException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last face.");
+		for(int i=0;i<numFaces;i++) {
+			byte[] datain=new byte[48];
+			reader.read(datain);
+			faces[i]=new Face(datain);
 		}
 		reader.close();
 	}
@@ -118,70 +130,7 @@ public class Lump09 {
 				newFile.createNewFile();
 			}
 			FileOutputStream faceWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numFaces*48];
-			for(int i=0;i<numFaces;i++) {
-				// This is MUCH faster than using DataOutputStream
-				int out=faces[i].getPlane();
-				data[(i*48)+3]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+2]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+1]=(byte)((out >> 8) & 0xFF);
-				data[i*48]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getVert();
-				data[(i*48)+7]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+6]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+5]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+4]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getNumVerts();
-				data[(i*48)+11]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+10]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+9]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+8]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getMeshs();
-				data[(i*48)+15]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+14]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+13]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+12]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getNumMeshs();
-				data[(i*48)+19]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+18]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+17]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+16]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getType();
-				data[(i*48)+23]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+22]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+21]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+20]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getTexture();
-				data[(i*48)+27]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+26]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+25]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+24]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getMaterial();
-				data[(i*48)+31]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+30]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+29]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+28]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getTexStyle();
-				data[(i*48)+35]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+34]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+33]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+32]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getUnknown();
-				data[(i*48)+39]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+38]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+37]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+36]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getLgtStyles();
-				data[(i*48)+43]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+42]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+41]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+40]=(byte)((out >> 0) & 0xFF);
-				out=faces[i].getLgtMaps();
-				data[(i*48)+47]=(byte)((out >> 24) & 0xFF);
-				data[(i*48)+46]=(byte)((out >> 16) & 0xFF);
-				data[(i*48)+45]=(byte)((out >> 8) & 0xFF);
-				data[(i*48)+44]=(byte)((out >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
 			faceWriter.write(data);
 			faceWriter.close();
 		} catch(java.io.IOException e) {
@@ -204,11 +153,79 @@ public class Lump09 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numFaces*48];
+		for(int i=0;i<numFaces;i++) {
+			// This is MUCH faster than using DataOutputStream
+			int out=faces[i].getPlane();
+			data[(i*48)+3]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+2]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+1]=(byte)((out >> 8) & 0xFF);
+			data[i*48]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getVert();
+			data[(i*48)+7]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+6]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+5]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+4]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getNumVerts();
+			data[(i*48)+11]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+10]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+9]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+8]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getMeshs();
+			data[(i*48)+15]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+14]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+13]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+12]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getNumMeshs();
+			data[(i*48)+19]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+18]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+17]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+16]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getType();
+			data[(i*48)+23]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+22]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+21]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+20]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getTexture();
+			data[(i*48)+27]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+26]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+25]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+24]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getMaterial();
+			data[(i*48)+31]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+30]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+29]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+28]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getTexStyle();
+			data[(i*48)+35]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+34]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+33]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+32]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getUnknown();
+			data[(i*48)+39]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+38]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+37]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+36]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getLgtStyles();
+			data[(i*48)+43]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+42]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+41]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+40]=(byte)((out >> 0) & 0xFF);
+			out=faces[i].getLgtMaps();
+			data[(i*48)+47]=(byte)((out >> 24) & 0xFF);
+			data[(i*48)+46]=(byte)((out >> 16) & 0xFF);
+			data[(i*48)+45]=(byte)((out >> 8) & 0xFF);
+			data[(i*48)+44]=(byte)((out >> 0) & 0xFF);
+		}
+		return data;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numFaces*48;
 	}
 	
 	// Returns the number of faces.

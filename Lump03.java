@@ -41,6 +41,22 @@ public class Lump03 {
 		}
 	}
 	
+	public Lump03(byte[] in) {
+		int offset=0;
+		numMtrls=in.length/64;
+		materials=new String[numMtrls];
+		for(int i=0;i<numMtrls;i++) {
+			materials[i]=(char)in[offset]+""; // must do this first. Doing += right away adds "null" to the beginning
+			for(int j=1;j<64;j++) {
+				if(in[offset+j]==0x00) {
+					break;
+				} // else
+				materials[i]+=(char)in[offset+j]+"";
+			}
+			offset+=64;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateMaterialList()
@@ -117,6 +133,20 @@ public class Lump03 {
 		save(data.getParent());
 	}
 	
+	public byte[] toByteArray() {
+		byte[] out=new byte[numMtrls*64];
+		for(int i=0;i<numMtrls;i++) {
+			String mat=materials[i];
+			while(mat.length()<64) {
+				mat+=(char)0x00+""; // Pad the output to 64 bytes
+			}
+			for(int j=0;j<64;j++) {
+				out[(i*64)+j]=(byte)mat.charAt(j);
+			}
+		}
+		return out;
+	}
+	
 	// Deletes a material from the array by index
 	public void delete(int index) {
 		String[] newList=new String[numMtrls-1];
@@ -135,7 +165,7 @@ public class Lump03 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numMtrls*64;
 	}
 	
 	// Returns the number of materials.

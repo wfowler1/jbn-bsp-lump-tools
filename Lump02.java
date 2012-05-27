@@ -41,6 +41,22 @@ public class Lump02 {
 		}
 	}
 	
+	public Lump02(byte[] in) {
+		int offset=0;
+		numTxts=in.length/64;
+		textures=new String[numTxts];
+		for(int i=0;i<numTxts;i++) {
+			textures[i]=(char)in[offset]+""; // must do this first. Doing += right away adds "null" to the beginning
+			for(int j=1;j<64;j++) {
+				if(in[offset+j]==0x00) {
+					break;
+				} // else
+				textures[i]+=(char)in[offset+j]+"";
+			}
+			offset+=64;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateTextureList()
@@ -118,6 +134,20 @@ public class Lump02 {
 		save(data.getParent());
 	}
 	
+	public byte[] toByteArray() {
+		byte[] out=new byte[numTxts*64];
+		for(int i=0;i<numTxts;i++) {
+			String tex=textures[i];
+			while(tex.length()<64) {
+				tex+=(char)0x00+""; // Pad the output to 64 bytes
+			}
+			for(int j=0;j<64;j++) {
+				out[(i*64)+j]=(byte)tex.charAt(j);
+			}
+		}
+		return out;
+	}
+	
 	// Deletes a texture from the array by index
 	public void delete(int index) {
 		String[] newList=new String[numTxts-1];
@@ -136,7 +166,7 @@ public class Lump02 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numTxts*64;
 	}
 	
 	// Returns the number of textures.

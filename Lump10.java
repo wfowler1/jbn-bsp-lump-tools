@@ -49,20 +49,30 @@ public class Lump10 {
 		}
 	}
 	
+	public Lump10(byte[] in) {
+		int offset=0;
+		numLightPixels=in.length/3;
+		pixels=new Pixel[numLightPixels];
+		for(int i=0;i<numLightPixels;i++) {
+			byte[] bytes=new byte[3];
+			for(int j=0;j<3;j++) {
+				bytes[j]=in[offset+j];
+			}
+			pixels[i]=new Pixel(bytes);
+			offset+=3;
+		}
+	}
+	
 	// METHODS
 	
 	// +populatePixelList()
 	// Parses all data into an array of Pixel.
 	public void populatePixelList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numLightPixels;i++) {
-				byte[] datain=new byte[3];
-				reader.read(datain);
-				pixels[i]=new Pixel(datain);
-			}
-		} catch(InvalidPixelException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last pixel.");
+		for(int i=0;i<numLightPixels;i++) {
+			byte[] datain=new byte[3];
+			reader.read(datain);
+			pixels[i]=new Pixel(datain);
 		}
 		reader.close();
 	}
@@ -122,13 +132,7 @@ public class Lump10 {
 				newFile.createNewFile();
 			}
 			FileOutputStream pixelWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[(int)numLightPixels*3];
-			for(int i=0;i<numLightPixels;i++) {
-				// This is MUCH faster than using DataOutputStream
-				data[(i*3)]=pixels[i].getR();
-				data[(i*3)+1]=pixels[i].getG();
-				data[(i*3)+2]=pixels[i].getB();
-			}
+			byte[] data=toByteArray();
 			pixelWriter.write(data);
 			pixelWriter.close();
 		} catch(java.io.IOException e) {
@@ -142,11 +146,22 @@ public class Lump10 {
 		save(data.getParent());
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[(int)numLightPixels*3];
+		for(int i=0;i<numLightPixels;i++) {
+			// This is MUCH faster than using DataOutputStream
+			data[(i*3)]=pixels[i].getR();
+			data[(i*3)+1]=pixels[i].getG();
+			data[(i*3)+2]=pixels[i].getB();
+		}
+		return data;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numLightPixels*3;
 	}
 	
 	// Returns the number of pixels.

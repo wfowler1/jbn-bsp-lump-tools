@@ -45,6 +45,20 @@ public class Lump13 {
 		}
 	}
 	
+	public Lump13(byte[] in) {
+		int offset=0;
+		numMBrshs=in.length/4;
+		markbrushes=new int[numMBrshs];
+		for(int i=0;i<numMBrshs;i++) {
+			byte[] bytes=new byte[4];
+			for(int j=0;j<4;j++) {
+				bytes[j]=in[offset+j];
+			}
+			markbrushes[i]=(bytes[3] << 24) | ((bytes[2] & 0xff) << 16) | ((bytes[1] & 0xff) << 8) | (bytes[0] & 0xff);
+			offset+=4;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateMBrshList()
@@ -114,6 +128,18 @@ public class Lump13 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numMBrshs*4];
+		for(int i=0;i<numMBrshs;i++) {
+			// This is MUCH faster than using DataOutputStream
+			data[(i*4)+3]=(byte)((markbrushes[i] >> 24) & 0xFF);
+			data[(i*4)+2]=(byte)((markbrushes[i] >> 16) & 0xFF);
+			data[(i*4)+1]=(byte)((markbrushes[i] >> 8) & 0xFF);
+			data[i*4]=(byte)((markbrushes[i] >> 0) & 0xFF);
+		}
+		return data;
+	}
+	
 	// save()
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
@@ -124,7 +150,7 @@ public class Lump13 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numMBrshs*4;
 	}
 	
 	// Returns the number of brush indices. This lump is RETARDED.

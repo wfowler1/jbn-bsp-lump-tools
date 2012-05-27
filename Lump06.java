@@ -45,6 +45,20 @@ public class Lump06 {
 		}
 	}
 	
+	public Lump06(byte[] in) {
+		int offset=0;
+		numMeshes=in.length/4;
+		meshes=new int[numMeshes];
+		for(int i=0;i<numMeshes;i++) {
+			byte[] intBytes=new byte[4];
+			for(int j=0;j<4;j++) {
+				intBytes[j]=in[offset+j];
+			}
+			meshes[i]=(intBytes[3] << 24) | ((intBytes[2] & 0xff) << 16) | ((intBytes[1] & 0xff) << 8) | (intBytes[0] & 0xff);
+			offset+=4;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateMeshList()
@@ -116,6 +130,18 @@ public class Lump06 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numMeshes*4];
+		for(int i=0;i<numMeshes;i++) {
+			// This is MUCH faster than using DataOutputStream
+			data[(i*4)+3]=(byte)((meshes[i] >> 24) & 0xFF);
+			data[(i*4)+2]=(byte)((meshes[i] >> 16) & 0xFF);
+			data[(i*4)+1]=(byte)((meshes[i] >> 8) & 0xFF);
+			data[i*4]=(byte)((meshes[i] >> 0) & 0xFF);
+		}
+		return data;
+	}
+	
 	// save()
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
@@ -156,7 +182,7 @@ public class Lump06 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numMeshes*4;
 	}
 	
 	// Returns the number of meshes.

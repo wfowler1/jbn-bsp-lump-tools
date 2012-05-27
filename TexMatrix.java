@@ -33,10 +33,7 @@ public class TexMatrix {
 	
 	// This one takes the components separate and in the correct data type
 	// if the axes are passed as float3s
-	public TexMatrix(float[] inUAxis, float inUS, float[] inVAxis, float inVS) throws InvalidTextureMatrixException {
-		if(inUAxis.length!=3 || inVAxis.length!=3) {
-			throw new InvalidTextureMatrixException();
-		}
+	public TexMatrix(float[] inUAxis, float inUS, float[] inVAxis, float inVS) {
 		uAxis=inUAxis;
 		uShift=inUS;
 		vAxis=inVAxis;
@@ -45,10 +42,7 @@ public class TexMatrix {
 
 	// This one takes an array of bytes (as if read directly from a file) and reads them
 	// directly into the proper data types.
-	public TexMatrix(byte[] in) throws InvalidTextureMatrixException {
-		if(in.length!=32) {
-			throw new InvalidTextureMatrixException();
-		}
+	public TexMatrix(byte[] in) {
 		int myInt=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		uAxis[X]=Float.intBitsToFloat(myInt);
 		myInt=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);

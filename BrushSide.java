@@ -24,10 +24,7 @@ public class BrushSide {
 
 	// This one takes an array of bytes (as if read directly from a file) and reads them
 	// directly into the proper data types.
-	public BrushSide(byte[] in) throws InvalidBrushSideException {
-		if(in.length!=8) {
-			throw new InvalidBrushSideException();
-		}
+	public BrushSide(byte[] in) {
 		face=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		plane=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 	}
