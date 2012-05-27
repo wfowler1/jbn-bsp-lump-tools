@@ -1,6 +1,6 @@
 // Lump04 class
 
-// This class holds an array of vertices of the Vertex class. Really it's an array
+// This class holds an array of vertices of the Vector3D class. Really it's an array
 // of float3 but that's how it is for consistency's sake.
 
 import java.io.FileInputStream;
@@ -17,7 +17,7 @@ public class Lump04 {
 	
 	private File data;
 	private int numVerts=0;
-	private Vertex[] vertices;
+	private Vector3D[] vertices;
 	
 	// CONSTRUCTORS
 	
@@ -26,7 +26,7 @@ public class Lump04 {
 		data=new File(in);
 		try {
 			numVerts=getNumElements();
-			vertices=new Vertex[numVerts];
+			vertices=new Vector3D[numVerts];
 			populateVertexList();
 		} catch(java.io.FileNotFoundException e) {
 			System.out.println("ERROR: File "+data+" not found!");
@@ -40,7 +40,7 @@ public class Lump04 {
 		data=in;
 		try {
 			numVerts=getNumElements();
-			vertices=new Vertex[numVerts];
+			vertices=new Vector3D[numVerts];
 			populateVertexList();
 		} catch(java.io.FileNotFoundException e) {
 			System.out.println("ERROR: File "+data+" not found!");
@@ -49,28 +49,38 @@ public class Lump04 {
 		}
 	}
 	
+	public Lump04(byte[] in) {
+		int offset=0;
+		numVerts=in.length/12;
+		vertices=new Vector3D[numVerts];
+		for(int i=0;i<numVerts;i++) {
+			byte[] vertexBytes=new byte[12];
+			for(int j=0;j<12;j++) {
+				vertexBytes[j]=in[offset+j];
+			}
+			vertices[i]=new Vector3D(vertexBytes);
+			offset+=12;
+		}
+	}
+	
 	// METHODS
 	
 	// +populateVertexList()
-	// Parses all data into an array of Vertex.
+	// Parses all data into an array of Vector3D.
 	public void populateVertexList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numVerts;i++) {
-				byte[] datain=new byte[12];
-				reader.read(datain);
-				vertices[i]=new Vertex(datain);
-			}
-		} catch(InvalidVertexException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last vertex.");
+		for(int i=0;i<numVerts;i++) {
+			byte[] datain=new byte[12];
+			reader.read(datain);
+			vertices[i]=new Vector3D(datain);
 		}
 		reader.close();
 	}
 	
-	// add(Vertex)
-	// Adds a vertex which is already a Vertex object. Easiest to do.
-	public void add(Vertex in) {
-		Vertex[] newList=new Vertex[numVerts+1];
+	// add(Vector3D)
+	// Adds a vertex which is already a Vector3D object. Easiest to do.
+	public void add(Vector3D in) {
+		Vector3D[] newList=new Vector3D[numVerts+1];
 		for(int i=0;i<numVerts;i++) {
 			newList[i]=vertices[i];
 		}
@@ -82,14 +92,14 @@ public class Lump04 {
 	// add (float float float)
 	// Adds a vertex defined by data alone. Still easy.
 	public void add(float inx, float iny, float inz) {
-		add(new Vertex(inx, iny, inz));
+		add(new Vector3D(inx, iny, inz));
 	}
 	
 	// add(Lump04)
 	// Adds every vertex in another Lump04 object. This is actually much easier
 	// than most other lumps since this one doesn't reference another lump.
 	public void add(Lump04 in) {
-		Vertex[] newList=new Vertex[numVerts+in.getNumElements()];
+		Vector3D[] newList=new Vector3D[numVerts+in.getNumElements()];
 		for(int i=0;i<numVerts;i++) {
 			newList[i]=vertices[i];
 		}
@@ -115,17 +125,17 @@ public class Lump04 {
 			byte[] data=new byte[numVerts*12];
 			for(int i=0;i<numVerts;i++) {
 				// This is MUCH faster than using DataOutputStream
-				int out=Float.floatToRawIntBits(vertices[i].getX());
+				int out=Float.floatToRawIntBits((float)vertices[i].getX());
 				data[(i*12)+3]=(byte)((out >> 24) & 0xFF);
 				data[(i*12)+2]=(byte)((out >> 16) & 0xFF);
 				data[(i*12)+1]=(byte)((out >> 8) & 0xFF);
 				data[i*12]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(vertices[i].getY());
+				out=Float.floatToRawIntBits((float)vertices[i].getY());
 				data[(i*12)+7]=(byte)((out >> 24) & 0xFF);
 				data[(i*12)+6]=(byte)((out >> 16) & 0xFF);
 				data[(i*12)+5]=(byte)((out >> 8) & 0xFF);
 				data[(i*12)+4]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(vertices[i].getZ());
+				out=Float.floatToRawIntBits((float)vertices[i].getZ());
 				data[(i*12)+11]=(byte)((out >> 24) & 0xFF);
 				data[(i*12)+10]=(byte)((out >> 16) & 0xFF);
 				data[(i*12)+9]=(byte)((out >> 8) & 0xFF);
@@ -138,6 +148,29 @@ public class Lump04 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numVerts*12];
+		for(int i=0;i<numVerts;i++) {
+			// This is MUCH faster than using DataOutputStream
+			int out=Float.floatToRawIntBits((float)vertices[i].getX());
+			data[(i*12)+3]=(byte)((out >> 24) & 0xFF);
+			data[(i*12)+2]=(byte)((out >> 16) & 0xFF);
+			data[(i*12)+1]=(byte)((out >> 8) & 0xFF);
+			data[i*12]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits((float)vertices[i].getY());
+			data[(i*12)+7]=(byte)((out >> 24) & 0xFF);
+			data[(i*12)+6]=(byte)((out >> 16) & 0xFF);
+			data[(i*12)+5]=(byte)((out >> 8) & 0xFF);
+			data[(i*12)+4]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits((float)vertices[i].getZ());
+			data[(i*12)+11]=(byte)((out >> 24) & 0xFF);
+			data[(i*12)+10]=(byte)((out >> 16) & 0xFF);
+			data[(i*12)+9]=(byte)((out >> 8) & 0xFF);
+			data[(i*12)+8]=(byte)((out >> 0) & 0xFF);
+		}
+		return data;
+	}
+	
 	// save()
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
@@ -148,7 +181,7 @@ public class Lump04 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numVerts*12;
 	}
 	
 	// Returns the number of vertices.
@@ -160,11 +193,11 @@ public class Lump04 {
 		}
 	}
 	
-	public Vertex getVertex(int i) {
+	public Vector3D getVertex(int i) {
 		return vertices[i];
 	}
 	
-	public Vertex[] getVertices() {
+	public Vector3D[] getVertices() {
 		return vertices;
 	}
 }

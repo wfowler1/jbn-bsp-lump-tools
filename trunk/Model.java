@@ -44,10 +44,7 @@ public class Model {
 	}
 	
 	// This constructor takes all data in their proper data types with mins and maxs as float3s
-	public Model(float[] inMins, float[] inMaxs, int unk0, int unk1, int unk2, int unk3, int inLeaf, int inNumLeafs, int inFace, int inNumFaces) throws InvalidModelException {
-		if(inMins.length!=3 || inMaxs.length!=3) {
-			throw new InvalidModelException();
-		}
+	public Model(float[] inMins, float[] inMaxs, int unk0, int unk1, int unk2, int unk3, int inLeaf, int inNumLeafs, int inFace, int inNumFaces) {
 		mins=inMins;
 		maxs=inMaxs;
 		unknown0=unk0;
@@ -62,10 +59,7 @@ public class Model {
 	
 	// This constructor takes 56 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Model(byte[] in) throws InvalidModelException {
-		if(in.length!=56) {
-			throw new InvalidModelException();
-		}
+	public Model(byte[] in) {
 		int myInt=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		mins[X]=Float.intBitsToFloat(myInt);
 		myInt=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);

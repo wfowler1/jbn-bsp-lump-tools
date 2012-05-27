@@ -46,6 +46,20 @@ public class Lump17 {
 		}
 	}
 	
+	public Lump17(byte[] in) {
+		int offset=0;
+		numTxmatxs=in.length/32;
+		texturematrix=new TexMatrix[numTxmatxs];
+		for(int i=0;i<numTxmatxs;i++) {
+			byte[] bytes=new byte[32];
+			for(int j=0;j<32;j++) {
+				bytes[j]=in[offset+j];
+			}
+			texturematrix[i]=new TexMatrix(bytes);
+			offset+=32;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateTextureMatrixList()
@@ -53,16 +67,12 @@ public class Lump17 {
 	// the other lump classes.
 	private void populateTextureMatrixList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numTxmatxs;i++) {
-				byte[] datain=new byte[32];
-				reader.read(datain);
-				texturematrix[i]=new TexMatrix(datain);
-			}
-			reader.close();
-		} catch(InvalidTextureMatrixException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last texture matrix.");
+		for(int i=0;i<numTxmatxs;i++) {
+			byte[] datain=new byte[32];
+			reader.read(datain);
+			texturematrix[i]=new TexMatrix(datain);
 		}
+		reader.close();
 	}
 	
 	// add(TexMatrix)
@@ -125,55 +135,60 @@ public class Lump17 {
 				newFile.createNewFile();
 			}
 			FileOutputStream texmatrixWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numTxmatxs*32];
-			for(int i=0;i<numTxmatxs;i++) {
-				int out=Float.floatToRawIntBits(texturematrix[i].getUAxisX());
-				// This is MUCH faster than using DataOutputStream.
-				data[(i*32)+3]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+2]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+1]=(byte)((out >> 8) & 0xFF);
-				data[i*32]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getUAxisY());
-				data[(i*32)+7]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+6]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+5]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+4]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getUAxisZ());
-				data[(i*32)+11]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+10]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+9]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+8]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getUShift());
-				data[(i*32)+15]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+14]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+13]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+12]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getVAxisX());
-				data[(i*32)+19]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+18]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+17]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+16]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getVAxisY());
-				data[(i*32)+23]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+22]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+21]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+20]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getVAxisZ());
-				data[(i*32)+27]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+26]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+25]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+24]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(texturematrix[i].getVShift());
-				data[(i*32)+31]=(byte)((out >> 24) & 0xFF);
-				data[(i*32)+30]=(byte)((out >> 16) & 0xFF);
-				data[(i*32)+29]=(byte)((out >> 8) & 0xFF);
-				data[(i*32)+28]=(byte)((out >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
 			texmatrixWriter.write(data);
 			texmatrixWriter.close();
 		} catch(java.io.IOException e) {
 			System.out.println("ERROR: Could not save "+newFile+", ensure the file is not open in another program and the path "+path+" exists");
 		}
+	}
+	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numTxmatxs*32];
+		for(int i=0;i<numTxmatxs;i++) {
+			int out=Float.floatToRawIntBits(texturematrix[i].getUAxisX());
+			// This is MUCH faster than using DataOutputStream.
+			data[(i*32)+3]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+2]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+1]=(byte)((out >> 8) & 0xFF);
+			data[i*32]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getUAxisY());
+			data[(i*32)+7]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+6]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+5]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+4]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getUAxisZ());
+			data[(i*32)+11]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+10]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+9]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+8]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getUShift());
+			data[(i*32)+15]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+14]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+13]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+12]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getVAxisX());
+			data[(i*32)+19]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+18]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+17]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+16]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getVAxisY());
+			data[(i*32)+23]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+22]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+21]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+20]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getVAxisZ());
+			data[(i*32)+27]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+26]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+25]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+24]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(texturematrix[i].getVShift());
+			data[(i*32)+31]=(byte)((out >> 24) & 0xFF);
+			data[(i*32)+30]=(byte)((out >> 16) & 0xFF);
+			data[(i*32)+29]=(byte)((out >> 8) & 0xFF);
+			data[(i*32)+28]=(byte)((out >> 0) & 0xFF);
+		}
+		return data;
 	}
 	
 	// save()
@@ -186,7 +201,7 @@ public class Lump17 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numTxmatxs*32;
 	}
 	
 	// Returns the number of texture scales.

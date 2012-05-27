@@ -20,8 +20,12 @@ public class LumpToolsDriver {
 		Scanner keyboard=new Scanner(System.in);
 		System.out.print("BSP Path: ");
 		String BSP=keyboard.nextLine();
-		NFBSP myBSP=new NFBSP(BSP);
-		myBSP.flipX();
-		myBSP.saveLumps(BSP+"FLIPX.BSP");
+		BSPReader bspreader=new BSPReader(BSP);
+		NFBSP myBSP=bspreader.readBSP();
+		myBSP.setPath(BSP);
+		myBSP.optimizeBSP();
+		System.out.println("\nWriting "+myBSP.getFolder()+myBSP.getMapName()+"_optim.bsp");
+		BSPWriter myWriter = new BSPWriter(myBSP);
+		myWriter.writeFile(myBSP.getFolder()+myBSP.getMapName()+"_optim.bsp");
 	}
 }

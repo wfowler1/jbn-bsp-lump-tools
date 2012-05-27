@@ -8,10 +8,10 @@ public class Brush {
 	
 	// INITIAL DATA DECLARATION AND DEFINITION OF CONSTANTS
 	
-	private int attributes; // attributes is a strange animal. It's
-	                        // probably not read as an int by the
-									// game engine, it may be a set of bytes
-									// or even a bunch of binary flags.
+	private byte[] attributes=new byte[4]; // attributes is a strange animal. It's
+	                                       // probably not read as an int by the
+	                                       // game engine, it may be a set of bytes
+	                                       // or even a bunch of binary flags.
 	private int firstSide;
 	private int numSides; // Hey, cool! You could have up to 4 billion
 	                      // sides on a single brush! Unfortunately,
@@ -23,19 +23,26 @@ public class Brush {
 	// CONSTRUCTORS
 	
 	// This one takes the components separate and in the correct data type
-	public Brush(int inAttributes, int inFirstSide, int inNumSides) {
-		attributes=inAttributes;
+	public Brush(byte[] inAttributes, int inFirstSide, int inNumSides) {
+		try {
+			attributes[0]=inAttributes[0];
+			attributes[1]=inAttributes[1];
+			attributes[2]=inAttributes[2];
+			attributes[3]=inAttributes[3];
+		} catch(java.lang.ArrayIndexOutOfBoundsException e) {
+			; // Meh, there are worse crimes. Leave them at 0
+		}
 		firstSide=inFirstSide;
 		numSides=inNumSides;
 	}
 
 	// This one takes an array of bytes (as if read directly from a file) and reads them
 	// directly into the proper data types.
-	public Brush(byte[] in) throws InvalidBrushException {
-		if(in.length!=12) {
-			throw new InvalidBrushException();
-		}
-		attributes=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
+	public Brush(byte[] in) {
+		attributes[0]=in[0];
+		attributes[1]=in[1];
+		attributes[2]=in[2];
+		attributes[3]=in[3];
 		firstSide=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 		numSides=(in[11] << 24) | ((in[10] & 0xff) << 16) | ((in[9] & 0xff) << 8) | (in[8] & 0xff);
 	}
@@ -43,12 +50,14 @@ public class Brush {
 	// METHODS
 	
 	// ACCESSORS/MUTATORS
-	public int getAttributes() {
+	public byte[] getAttributes() {
 		return attributes;
 	}
 	
-	public void setAttributes(int in) {
-		attributes=in;
+	public void setAttributes(byte[] in) {
+		if(in.length==4) {
+			attributes=in;
+		}
 	}
 	
 	public int getFirstSide() {

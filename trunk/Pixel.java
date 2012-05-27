@@ -22,10 +22,7 @@ public class Pixel {
 	}
 	
 	// This constructor takes one byte[3]
-	public Pixel(byte[] in) throws InvalidPixelException {
-		if(in.length!=3) {
-			throw new InvalidPixelException();
-		}
+	public Pixel(byte[] in) {
 		pixel=in;
 	}
 	

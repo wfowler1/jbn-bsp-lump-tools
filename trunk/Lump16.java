@@ -51,6 +51,20 @@ public class Lump16 {
 		numBrshsds=brushsides.length;
 	}
 	
+	public Lump16(byte[] in) {
+		int offset=0;
+		numBrshsds=in.length/8;
+		brushsides=new BrushSide[numBrshsds];
+		for(int i=0;i<numBrshsds;i++) {
+			byte[] bytes=new byte[8];
+			for(int j=0;j<8;j++) {
+				bytes[j]=in[offset+j];
+			}
+			brushsides[i]=new BrushSide(bytes);
+			offset+=8;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateBrushSideList()
@@ -58,16 +72,12 @@ public class Lump16 {
 	// array of BrushSide objects with the data from the file
 	private void populateBrushSideList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numBrshsds;i++) {
-				byte[] datain=new byte[8];
-				reader.read(datain);
-				brushsides[i]=new BrushSide(datain);
-			}
-			reader.close();
-		} catch(InvalidBrushSideException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last brush side.");
+		for(int i=0;i<numBrshsds;i++) {
+			byte[] datain=new byte[8];
+			reader.read(datain);
+			brushsides[i]=new BrushSide(datain);
 		}
+		reader.close();
 	}
 	
 	// add(BrushSide)
@@ -100,18 +110,7 @@ public class Lump16 {
 				newFile.createNewFile();
 			}
 			FileOutputStream brushsideWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numBrshsds*8];
-			for(int i=0;i<numBrshsds;i++) {
-				// This is MUCH faster than using DataOutputStream.
-				data[(i*8)+3]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
-				data[(i*8)+2]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
-				data[(i*8)+1]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
-				data[i*8]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
-				data[(i*8)+7]=(byte)((brushsides[i].getPlane() >> 24) & 0xFF);
-				data[(i*8)+6]=(byte)((brushsides[i].getPlane() >> 16) & 0xFF);
-				data[(i*8)+5]=(byte)((brushsides[i].getPlane() >> 8) & 0xFF);
-				data[(i*8)+4]=(byte)((brushsides[i].getPlane() >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
 			brushsideWriter.write(data);
 			brushsideWriter.close();
 		} catch(java.io.IOException e) {
@@ -119,11 +118,27 @@ public class Lump16 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numBrshsds*8];
+		for(int i=0;i<numBrshsds;i++) {
+			// This is MUCH faster than using DataOutputStream.
+			data[(i*8)+3]=(byte)((brushsides[i].getFace() >> 24) & 0xFF);
+			data[(i*8)+2]=(byte)((brushsides[i].getFace() >> 16) & 0xFF);
+			data[(i*8)+1]=(byte)((brushsides[i].getFace() >> 8) & 0xFF);
+			data[i*8]=(byte)((brushsides[i].getFace() >> 0) & 0xFF);
+			data[(i*8)+7]=(byte)((brushsides[i].getPlane() >> 24) & 0xFF);
+			data[(i*8)+6]=(byte)((brushsides[i].getPlane() >> 16) & 0xFF);
+			data[(i*8)+5]=(byte)((brushsides[i].getPlane() >> 8) & 0xFF);
+			data[(i*8)+4]=(byte)((brushsides[i].getPlane() >> 0) & 0xFF);
+		}
+		return data;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numBrshsds*8;
 	}
 	
 	// Returns the number of brush sides.

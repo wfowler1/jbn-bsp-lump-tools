@@ -42,10 +42,7 @@ public class Face {
 	
 	// This constructor takes 48 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Face(byte[] in) throws InvalidFaceException {
-		if(in.length!=48) {
-			throw new InvalidFaceException();
-		} // else
+	public Face(byte[] in) {
 		plane=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		vert=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 		numVerts=(in[11] << 24) | ((in[10] & 0xff) << 16) | ((in[9] & 0xff) << 8) | (in[8] & 0xff);

@@ -59,6 +59,17 @@ public class Lump07 {
 		}
 	}
 	
+	public Lump07(byte[] in, int length) {
+		lengthOfData=length;
+		numPVS=in.length/lengthOfData;
+		PVSes = new byte[numPVS][lengthOfData];
+		for(int i=0;i<numPVS;i++) {
+			for(int j=0;j<lengthOfData;j++) {
+				PVSes[i][j]=in[(i*lengthOfData)+j];
+			}
+		}
+	}
+	
 	// METHODS
 	
 	// -populatePVSList()
@@ -114,6 +125,16 @@ public class Lump07 {
 		save(data.getParent());
 	}
 	
+	public byte[] toByteArray() {
+		byte[] allPVSs=new byte[lengthOfData*numPVS];
+		for(int i=0;i<numPVS;i++) {
+			for(int j=0;j<lengthOfData;j++) {
+				allPVSs[(i*lengthOfData)+j]=PVSes[i][j];
+			}
+		}
+		return allPVSs;
+	}
+	
 	// equals(int, byte[])
 	// Checks if the passed byte array has the same data as the byte array at the passed index.
 	public boolean equals(int index, byte[] in) {
@@ -150,7 +171,7 @@ public class Lump07 {
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numPVS*lengthOfData;
 	}
 	
 	// Returns the number of visibility groups, or PVSes.

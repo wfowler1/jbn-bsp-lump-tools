@@ -55,20 +55,30 @@ public class Lump08 {
 		numNodes=nodes.length;
 	}
 	
+	public Lump08(byte[] in) {
+		int offset=0;
+		numNodes=in.length/36;
+		nodes=new Node[numNodes];
+		for(int i=0;i<numNodes;i++) {
+			byte[] bytes=new byte[36];
+			for(int j=0;j<36;j++) {
+				bytes[j]=in[offset+j];
+			}
+			nodes[i]=new Node(bytes);
+			offset+=36;
+		}
+	}
+	
 	// METHODS
 	
 	// -populateNodeList()
 	// Creates an array of Node objects which hold the data for all nodes.
 	private void populateNodeList() throws java.io.FileNotFoundException, java.io.IOException {
 		FileInputStream reader=new FileInputStream(data);
-		try {
-			for(int i=0;i<numNodes;i++) {
-				byte[] datain=new byte[36];
-				reader.read(datain);
-				nodes[i]=new Node(datain);
-			}
-		} catch(InvalidNodeException e) {
-			System.out.println("WARNING: Funny lump size in "+data+", ignoring last node.");
+		for(int i=0;i<numNodes;i++) {
+			byte[] datain=new byte[36];
+			reader.read(datain);
+			nodes[i]=new Node(datain);
 		}
 		reader.close();
 	}
@@ -102,56 +112,7 @@ public class Lump08 {
 				newFile.createNewFile();
 			}
 			FileOutputStream nodeWriter=new FileOutputStream(newFile);
-			byte[] data=new byte[numNodes*36];
-			for(int i=0;i<numNodes;i++) {
-				// This is MUCH faster than using DataOutputStream
-				int out=nodes[i].getPlane();
-				data[(i*36)+3]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+2]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+1]=(byte)((out >> 8) & 0xFF);
-				data[i*36]=(byte)((out >> 0) & 0xFF);
-				// It's occurred to me that I use this often enough to justify having a separate method for this stuff.
-				out=nodes[i].getChild1();
-				data[(i*36)+7]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+6]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+5]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+4]=(byte)((out >> 0) & 0xFF);
-				out=nodes[i].getChild2();
-				data[(i*36)+11]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+10]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+9]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+8]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(nodes[i].getMinX());
-				data[(i*36)+15]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+14]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+13]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+12]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(nodes[i].getMinY());
-				data[(i*36)+19]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+18]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+17]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+16]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(nodes[i].getMinZ());
-				data[(i*36)+23]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+22]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+21]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+20]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(nodes[i].getMaxX());
-				data[(i*36)+27]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+26]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+25]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+24]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(nodes[i].getMaxY());
-				data[(i*36)+31]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+30]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+29]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+28]=(byte)((out >> 0) & 0xFF);
-				out=Float.floatToRawIntBits(nodes[i].getMaxZ());
-				data[(i*36)+35]=(byte)((out >> 24) & 0xFF);
-				data[(i*36)+34]=(byte)((out >> 16) & 0xFF);
-				data[(i*36)+33]=(byte)((out >> 8) & 0xFF);
-				data[(i*36)+32]=(byte)((out >> 0) & 0xFF);
-			}
+			byte[] data=toByteArray();
 			nodeWriter.write(data);
 			nodeWriter.close();
 		} catch(java.io.IOException e) {
@@ -159,11 +120,65 @@ public class Lump08 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		byte[] data=new byte[numNodes*36];
+		for(int i=0;i<numNodes;i++) {
+			// This is MUCH faster than using DataOutputStream
+			int out=nodes[i].getPlane();
+			data[(i*36)+3]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+2]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+1]=(byte)((out >> 8) & 0xFF);
+			data[i*36]=(byte)((out >> 0) & 0xFF);
+			// It's occurred to me that I use this often enough to justify having a separate method for this stuff.
+			out=nodes[i].getChild1();
+			data[(i*36)+7]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+6]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+5]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+4]=(byte)((out >> 0) & 0xFF);
+			out=nodes[i].getChild2();
+			data[(i*36)+11]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+10]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+9]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+8]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(nodes[i].getMinX());
+			data[(i*36)+15]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+14]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+13]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+12]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(nodes[i].getMinY());
+			data[(i*36)+19]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+18]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+17]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+16]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(nodes[i].getMinZ());
+			data[(i*36)+23]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+22]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+21]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+20]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(nodes[i].getMaxX());
+			data[(i*36)+27]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+26]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+25]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+24]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(nodes[i].getMaxY());
+			data[(i*36)+31]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+30]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+29]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+28]=(byte)((out >> 0) & 0xFF);
+			out=Float.floatToRawIntBits(nodes[i].getMaxZ());
+			data[(i*36)+35]=(byte)((out >> 24) & 0xFF);
+			data[(i*36)+34]=(byte)((out >> 16) & 0xFF);
+			data[(i*36)+33]=(byte)((out >> 8) & 0xFF);
+			data[(i*36)+32]=(byte)((out >> 0) & 0xFF);
+		}
+		return data;
+	}
+	
 	// ACCESSORS/MUTATORS
 	
 	// Returns the length (in bytes) of the lump
 	public long getLength() {
-		return data.length();
+		return numNodes*36;
 	}
 	
 	// Returns the number of nodes.

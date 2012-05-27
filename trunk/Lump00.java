@@ -6,12 +6,14 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.File;
 import java.util.Scanner;
+import java.util.Date;
 
 public class Lump00 {
 	
 	// INITIAL DATA DECLARATION AND DEFINITION OF CONSTANTS
 	
 	private File data;
+	private int length;
 	private int numEnts=0;
 	private Entity[] entities;
 	
@@ -21,13 +23,18 @@ public class Lump00 {
 	public Lump00(String in) {
 		data=new File(in);
 		try {
-			numEnts=getNumElements();
+			FileInputStream reader=new FileInputStream(data); // reads the file
+			byte[] thedata=new byte[(int)data.length()];
+			reader.read(thedata);
+			length=thedata.length;
+			reader.close();
+			numEnts=getNumElements(thedata);
 			entities = new Entity[numEnts];
-			populateEntityList();
+			populateEntityList(thedata);
 		} catch(java.io.FileNotFoundException e) {
-			System.out.println("ERROR: File "+data+" not found!");
+			System.out.println("ERROR: File "+data.getPath()+" not found!");
 		} catch(java.io.IOException e) {
-			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+			System.out.println("ERROR: File "+data.getPath()+" could not be read, ensure the file is not open in another program");
 		}
 	}
 	
@@ -35,13 +42,18 @@ public class Lump00 {
 	public Lump00(File in) {
 		data=in;
 		try {
-			numEnts=getNumElements();
+			FileInputStream reader=new FileInputStream(data); // reads the file
+			byte[] thedata=new byte[(int)data.length()];
+			reader.read(thedata);
+			length=thedata.length;
+			reader.close();
+			numEnts=getNumElements(thedata);
 			entities = new Entity[numEnts];
-			populateEntityList();
+			populateEntityList(thedata);
 		} catch(java.io.FileNotFoundException e) {
-			System.out.println("ERROR: File "+data+" not found!");
+			System.out.println("ERROR: File "+data.getPath()+" not found!");
 		} catch(java.io.IOException e) {
-			System.out.println("ERROR: File "+data+" could not be read, ensure the file is not open in another program");
+			System.out.println("ERROR: File "+data.getPath()+" could not be read, ensure the file is not open in another program");
 		}
 	}
 	
@@ -50,8 +62,22 @@ public class Lump00 {
 		entities=new Entity[in.getNumElements()];
 		numEnts=entities.length;
 		for(int i=0;i<numEnts;i++) {
-			entities[i]=new Entity(in.getEntity(i).toString());
+			entities[i]=new Entity(in.getEntity(i));
 		}
+	}
+	
+	// This one just takes an array of byte[]
+	public Lump00(byte[] thedata) {
+		length=thedata.length;
+		numEnts=getNumElements(thedata);
+		entities = new Entity[numEnts];
+		populateEntityList(thedata);
+	}
+	
+	public Lump00() {
+		length=0;
+		numEnts=0;
+		entities = new Entity[0];
 	}
 	
 	// METHODS
@@ -64,32 +90,40 @@ public class Lump00 {
 	// Even so, this method is a complete mess, so documentation is provided
 	// whenever possible.
 	// TODO: Rewrite this, try to make it faster.
-	private void populateEntityList() throws java.io.FileNotFoundException, java.io.IOException {
-		System.out.println("Populating entity list...");
+	private void populateEntityList(byte[] thedata) {
+		System.out.print("Populating entity list... ");
+		Date begin=new Date();
 		// I'd love to use Scanner here, but Scanner doesn't like using delimiters
-		// with "{" or "}" in them, which I fucking NEED
-		FileInputStream reader=new FileInputStream(data); // reads the file
+		// with "{" or "}" in them, which I NEED
 		char currentChar; // The current character being read in the file. This is necessary because
 		                  // we need to know exactly when the { and } characters occur and capture
 								// all text between them.
+		int offset=0;
 		for(int i=0;i<numEnts;i++) { // For every entity
 			String current=""; // This will be the resulting entity, fed into the Entity class
-			currentChar=(char)reader.read(); // begin reading the file
+			currentChar=(char)thedata[offset]; // begin reading the file
 			while(currentChar!='{') { // Eat bytes until we find the beginning of an entity structure
-				currentChar=(char)reader.read();
+				offset++;
+				currentChar=(char)thedata[offset];
 			}
-			reader.read(); // This will eat a 0x0A
-			currentChar=(char)reader.read(); // reads the first character after the 0x0A, which will be 
-			                                 // a quote (though it doesn't matter what the hell it is)
+			boolean inQuotes=false; // Keep track of whether or not we're in a set of quotation marks.
+			// I came across a map where the idiot map maker used { and } in a value. This broke the code prior to revision 55.
 			do {
+				if(currentChar=='\"') {
+					inQuotes=!inQuotes;
+				}
 				current+=currentChar+""; // adds characters to the current string
-				currentChar=(char)reader.read();
-			} while(currentChar!='}'); // Read bytes until we find the end of the current entity structure
-			entities[i]=new Entity(current); // puts the resulting String into the constructor of the Entity class
+				offset++;
+				currentChar=(char)thedata[offset];
+			} while(currentChar!='}' || inQuotes); // Read bytes until we find the end of the current entity structure
+			current+=currentChar+""; // adds the '}' to the current string
+			entities[i]=new Entity(); // puts the resulting String into the constructor of the Entity class
+			entities[i].setData(current);
 		}
-		reader.close();
+		Date end=new Date();
+		System.out.println(end.getTime()-begin.getTime()+"ms");
 	}
-	
+
 	// +add(String)
 	// Parses the string and adds it to the entity list.
 	// input Strings should be of the format:
@@ -99,29 +133,14 @@ public class Lump00 {
 	//   etc.0x0A
 	//   }
 	public void add(String in) {
-		Scanner reader=new Scanner(in);
-		reader.useDelimiter("");
-		char currentChar; // The current character being read in the String.
-		String current=""; // This will be the resulting entity, fed into the Entity class
-		currentChar=reader.next().charAt(0); // Stupid Scanner has no nextChar() method
-		while(currentChar!='{') { // Eat bytes until we find the beginning of an entity structure
-			currentChar=reader.next().charAt(0);
-		}
-		reader.next(); // This will eat a 0x0A
-		currentChar=reader.next().charAt(0); // reads the first character after the 0x0A, which will be 
-		                                     // a quote (though it doesn't matter what the hell it is)
-		do {
-			current+=currentChar+""; // adds characters to the current string
-			currentChar=reader.next().charAt(0);
-		} while(currentChar!='}'); // Read bytes until we find the end of the current entity structure
-		Entity newEnt=new Entity(current); // puts the resulting String into the constructor of the Entity class
+		Entity newEnt=new Entity(); // puts the String into the constructor of the Entity class
+		newEnt.setData(in);
 		add(newEnt);
-		reader.close();
 	}
 	
 	// +add(Entity)
 	// This is definitely the easiest to do. Adds an entity to the list
-	// which is already of type Entity. It can be assumes it's already
+	// which is already of type Entity. It can be assumed it's already
 	// been parsed and is valid the way it is.
 	public void add(Entity in) {
 		numEnts++;
@@ -248,7 +267,7 @@ public class Lump00 {
 					temp=tempString.getBytes();
 				}
 				entityWriter.write(temp);
-				entityWriter.write(entities[i].toByteArray());
+				entityWriter.write(entities[i].toString().getBytes());
 				byte [] temp2=new byte[2];
 				temp2[0]=(byte)'}';
 				temp2[1]=(byte)0x0A;
@@ -269,6 +288,31 @@ public class Lump00 {
 		}
 	}
 	
+	public byte[] toByteArray() {
+		int length=1;
+		String[] entsAsStrings=new String[entities.length];
+		for(int i=0;i<entities.length;i++) {
+			entsAsStrings[i]=entities[i].toString();
+			length+=entsAsStrings[i].length()+1;
+		}
+		byte[] out=new byte[length];
+		int offset=0;
+		for(int i=0;i<entities.length;i++) {
+			for(int j=0;j<entsAsStrings[i].length();j++) {
+				out[offset++]=(byte)entsAsStrings[i].charAt(j);
+			}
+			out[offset++]=(char)0x0A;
+		}
+		out[offset++]=(char)0x00;
+		return out;
+	}
+	
+	public void printents() {
+		for(int i=0;i<entities.length;i++) {
+			System.out.println(entities[i].toString());
+		}
+	}
+	
 	// save()
 	// Saves the lump, overwriting the one data was read from
 	public void save() {
@@ -278,30 +322,43 @@ public class Lump00 {
 	// ACCESSORS/MUTATORS
 		
 	// Returns the length (in bytes) of the lump
-	public long getLength() {
-		return data.length();
+	public int getLength() {
+		return length;
 	}
 	
 	// Returns the number of entities.
-	public int getNumElements() {
+	public int getNumElements(byte[] thedata) {
 		if (numEnts==0) {
-			System.out.println("Counting entities...");
+			System.out.print("Counting entities... ");
+			Date begin=new Date();
 			int count=0;
-			try {
-				FileInputStream fileReader = new FileInputStream(data);
-				for(int i=0;i<data.length();i++) {
-					if(fileReader.read() == '{') {
-						count++;
+			boolean inQuotes=false; // Keep track of whether or not we're in a set of quotation marks.
+			// I came across a map where the idiot map maker used { and } in a value. This broke the code prior to revision 55.
+			for(int i=0;i<thedata.length;i++) {
+				if(inQuotes) {
+					if(thedata[i]=='\"' && inQuotes) {
+						inQuotes=false;
+					}
+				} else {
+					if(thedata[i]=='\"') {
+						inQuotes=true;
+					} else {
+						if(thedata[i] == '{') {
+							count++;
+						}
 					}
 				}
-				fileReader.close();
-			} catch(java.io.IOException e) {
-				System.out.println("Unable to read Entities.txt!");
 			}
+			Date end=new Date();
+			System.out.println(end.getTime()-begin.getTime()+"ms");
 			return count;
 		} else {
 			return numEnts;
 		}
+	}
+	
+	public int getNumElements() {
+		return numEnts;
 	}
 	
 	// Returns a specific entity as an Entity object.

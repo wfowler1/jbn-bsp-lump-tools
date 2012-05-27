@@ -31,10 +31,7 @@ public class Node {
 		maxs[Z]=inMaxZ;
 	}
 	
-	public Node(int inPlane, int inChild1, int inChild2, float[] inMins, float[] inMaxs) throws InvalidNodeException {
-		if(inMins.length!=3 || inMaxs.length!=3) {
-			throw new InvalidNodeException();
-		}
+	public Node(int inPlane, int inChild1, int inChild2, float[] inMins, float[] inMaxs) {
 		plane=inPlane;
 		child1=inChild1;
 		child2=inChild2;
@@ -44,10 +41,7 @@ public class Node {
 	
 	// This constructor takes 36 bytes in a byte array, as though
 	// it had just been read by a FileInputStream.
-	public Node(byte[] in) throws InvalidNodeException {
-		if(in.length!=36) {
-			throw new InvalidNodeException();
-		}
+	public Node(byte[] in) {
 		plane=(in[3] << 24) | ((in[2] & 0xff) << 16) | ((in[1] & 0xff) << 8) | (in[0] & 0xff);
 		child1=(in[7] << 24) | ((in[6] & 0xff) << 16) | ((in[5] & 0xff) << 8) | (in[4] & 0xff);
 		child2=(in[11] << 24) | ((in[10] & 0xff) << 16) | ((in[9] & 0xff) << 8) | (in[8] & 0xff);
