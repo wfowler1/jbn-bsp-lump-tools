@@ -5,9 +5,6 @@ using System;
 public class Vertex:LumpObject, IEquatable<Vertex> {
 	
 	// INITIAL DATA DECLARATION AND DEFINITION OF CONSTANTS
-	public const int X = 0;
-	public const int Y = 1;
-	public const int Z = 2;
 	
 	private Vector3D vertex = Vector3D.UNDEFINED;
 	
@@ -75,4 +72,9 @@ public class Vertex:LumpObject, IEquatable<Vertex> {
 			vertex = value;
 		}
 	}
+
+	public double X { get { return vertex.X; } set { vertex.X = value; } }
+	public double Y { get { return vertex.Y; } set { vertex.Y = value; } }
+	public double Z { get { return vertex.Z; } set { vertex.Z = value; } }
+	public double this[int index] { get { return vertex[index]; } set { vertex[index]=value; } }
 }
