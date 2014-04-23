@@ -57,6 +57,7 @@
     <Compile Include="Settings.cs" />
     <Compile Include="TexInfo.cs" />
     <Compile Include="Texture.cs" />
+    <Compile Include="Util\Corrupter.cs" />
     <Compile Include="Util\Flipper.cs" />
     <Compile Include="Util\Optimizer.cs" />
     <Compile Include="Util\Swapper.cs" />

@@ -19,17 +19,17 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Shell;
 
-namespace LumpTools
-{
+namespace LumpTools {
 	/// <summary>
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
-	public partial class MainWindow : Window
-	{
-		BSP currentBSP;
+	public partial class MainWindow : Window {
+		private BSP currentBSP;
+		private Thread currentThread;
+		private Queue<Thread> jobQueue = new Queue<Thread>();
+		private Boolean working = false;
 
-		public MainWindow()
-		{
+		public MainWindow() {
 			InitializeComponent();
 		}
 
@@ -37,7 +37,7 @@ namespace LumpTools
 			OpenFileDialog fileOpener = new OpenFileDialog();
 			fileOpener.Filter = "BSP Files|*.bsp|All Files|*.*";
 
-			// Process open file dialog box results 
+			// Process open file dialog box results
 			if (fileOpener.ShowDialog() == true) {
 				string[] filesToOpen = fileOpener.FileNames;
 				for(int i=0;i<filesToOpen.Length;i++) {
@@ -122,6 +122,66 @@ namespace LumpTools
 
 		private void Quit_Click(object sender, RoutedEventArgs e) {
 			Application.Current.Shutdown();
+		}
+
+		private void StartNextIfAble() {
+			if(jobQueue.Count > 0 && !working) {
+				working = true;
+				currentThread = jobQueue.Dequeue();
+				currentThread.Start();
+			}
+		}
+
+		public void Corrupt_Click(object sender, RoutedEventArgs e) {
+			Util.CorruptionMode mode = Util.CorruptionMode.RANDOM;
+			if((bool)rad_sync.IsChecked) {
+				mode = Util.CorruptionMode.REPLACE;
+			}
+			Util.CorruptionValue values = Util.CorruptionValue.ZERO;	
+			if((bool)rad_relative.IsChecked) {
+				values = Util.CorruptionValue.RELATIVE;
+			}
+			else if((bool)rad_random.IsChecked) {
+				values = Util.CorruptionValue.RANDOM;
+			}
+			double range = 0.0;
+			try {
+				range = Double.Parse(txtVariance.Text);
+			} catch { ; }
+			double percentage = 1.0;
+			try {
+				percentage = Double.Parse(txtPercentage.Text) * 0.01;
+			} catch { ; }
+			Util.Corrupter.Corrupt(currentBSP, mode, values, range, percentage);
+		}
+
+		private void print(object sender, MessageEventArgs e) {
+			this.Dispatcher.Invoke((Action)(() => {
+				txtConsole.AppendText(e.Message+"\n");
+				if(txtConsole.SelectionLength==0) {
+					txtConsole.ScrollToEnd();
+				}
+			}));
+		}
+
+		private void threadFinished(object sender, EventArgs e) {
+			this.Dispatcher.Invoke((Action)(() => {
+				sender = null;
+				working = false;
+				StartNextIfAble();
+			}));
+		}
+	}
+
+	public class MessageEventArgs : EventArgs {
+		private string message;
+		public MessageEventArgs(string message) {
+			this.message = message;
+		}
+		public string Message {
+			get {
+				return message;
+			}
 		}
 	}
 }
