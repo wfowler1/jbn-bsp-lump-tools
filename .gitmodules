@@ -1,0 +1,3 @@
+[submodule "External/LibBSP"]
+	path = External/LibBSP
+	url = https://github.com/wfowler1/LibBSP.git

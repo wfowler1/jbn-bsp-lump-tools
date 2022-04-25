@@ -1,7 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Windows Desktop
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32126.317
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LumpTools", "LumpTools\LumpTools.csproj", "{DFFE2492-8997-4665-9E09-F78A156291C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibBSP", "External\LibBSP\LibBSP\LibBSP.csproj", "{33E4FFCA-8D0B-4089-AFD2-527547531578}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,8 +17,15 @@ Global
 		{DFFE2492-8997-4665-9E09-F78A156291C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DFFE2492-8997-4665-9E09-F78A156291C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DFFE2492-8997-4665-9E09-F78A156291C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33E4FFCA-8D0B-4089-AFD2-527547531578}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33E4FFCA-8D0B-4089-AFD2-527547531578}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33E4FFCA-8D0B-4089-AFD2-527547531578}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33E4FFCA-8D0B-4089-AFD2-527547531578}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0AF89EA7-01D6-49E3-BB9F-519541EC719D}
 	EndGlobalSection
 EndGlobal

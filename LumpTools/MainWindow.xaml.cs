@@ -1,23 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using Microsoft.Win32;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.IO;
 using System.Threading;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Windows.Shell;
+using System.IO;
+
+using LibBSP;
 
 namespace LumpTools {
 	/// <summary>
@@ -40,10 +28,8 @@ namespace LumpTools {
 			// Process open file dialog box results
 			if (fileOpener.ShowDialog() == true) {
 				string[] filesToOpen = fileOpener.FileNames;
-				for(int i=0;i<filesToOpen.Length;i++) {
-					BSPReader reader = new BSPReader(new FileInfo(filesToOpen[0]));
-					reader.readBSP();
-					currentBSP = reader.BSPData;
+				for (int i = 0; i < filesToOpen.Length; ++i) {
+					currentBSP = new BSP(new FileInfo(filesToOpen[0]));
 				}
 			}
 		}
@@ -55,8 +41,8 @@ namespace LumpTools {
 			// Process open file dialog box results 
 			if (fileSaver.ShowDialog() == true) {
 				string fileToSave = fileSaver.FileName;
-				BSPWriter.writeBSP(currentBSP, fileToSave);
-				currentBSP.Saved();
+				BSPWriter writer = new BSPWriter(currentBSP);
+				writer.WriteBSP(fileToSave);
 			}
 		}
 
@@ -65,58 +51,53 @@ namespace LumpTools {
 		}
 
 		private void Optimize_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Optimizer.optimize(currentBSP);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Optimizer.Optimize(currentBSP);
 			}
 		}
 
 		private void FlipX_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Flipper.Flip(currentBSP, 0);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Flipper.Flip(currentBSP, true, false, false);
 			}
 		}
 
 		private void FlipY_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Flipper.Flip(currentBSP, 1);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Flipper.Flip(currentBSP, false, true, false);
 			}
 		}
 
 		private void FlipZ_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Flipper.Flip(currentBSP, 2);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Flipper.Flip(currentBSP, false, false, true);
 			}
 		}
 
 		private void SwapXY_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Swapper.Swap(currentBSP, 0, 1);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Swapper.Swap(currentBSP, true, false, false);
 			}
 		}
 
 		private void SwapXZ_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Swapper.Swap(currentBSP, 0, 2);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Swapper.Swap(currentBSP, false, true, false);
 			}
 		}
 
 		private void SwapYZ_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				Util.Swapper.Swap(currentBSP, 1, 2);
-				currentBSP.Modified();
+			if (currentBSP != null) {
+				Util.Swapper.Swap(currentBSP, false, false, true);
 			}
 		}
 
 		private void Decompile_Click(object sender, RoutedEventArgs e) {
-			if(currentBSP != null) {
-				BSP42Decompiler decompiler42 = new BSP42Decompiler(currentBSP, 0);
-				MAPMaker.outputMaps(decompiler42.decompile(), currentBSP.MapNameNoExtension, currentBSP.Folder);
+			if (currentBSP != null) {
+				BSPDecompiler decompiler = new BSPDecompiler(currentBSP);
+				Entities entities = decompiler.Decompile();
+				GearcraftMapWriter writer = new GearcraftMapWriter(entities);
+				File.WriteAllText(Path.Combine(currentBSP.Reader.BspFile.Directory.FullName, currentBSP.MapName + ".map"), writer.ParseMap());
 			}
 		}
 
@@ -125,7 +106,7 @@ namespace LumpTools {
 		}
 
 		private void StartNextIfAble() {
-			if(jobQueue.Count > 0 && !working) {
+			if (jobQueue.Count > 0 && !working) {
 				working = true;
 				currentThread = jobQueue.Dequeue();
 				currentThread.Start();
@@ -134,42 +115,42 @@ namespace LumpTools {
 
 		public void Corrupt_Click(object sender, RoutedEventArgs e) {
 			Util.CorruptionMode mode = Util.CorruptionMode.RANDOM;
-			if((bool)rad_sync.IsChecked) {
+			if ((bool)rad_sync.IsChecked) {
 				mode = Util.CorruptionMode.REPLACE;
 			}
 			Util.CorruptionValue values = Util.CorruptionValue.ZERO;	
-			if((bool)rad_relative.IsChecked) {
+			if ((bool)rad_relative.IsChecked) {
 				values = Util.CorruptionValue.RELATIVE;
 			}
-			else if((bool)rad_random.IsChecked) {
+			else if ((bool)rad_random.IsChecked) {
 				values = Util.CorruptionValue.RANDOM;
 			}
-			double range = 0.0;
+			float range = 0;
 			try {
-				range = Double.Parse(txtVariance.Text);
+				range = float.Parse(txtVariance.Text);
 			} catch { ; }
-			double percentage = 1.0;
+			float percentage = 1;
 			try {
-				percentage = Double.Parse(txtPercentage.Text) * 0.01;
+				percentage = float.Parse(txtPercentage.Text) * 0.01f;
 			} catch { ; }
 			Util.Corrupter.Corrupt(currentBSP, mode, values, range, percentage);
 		}
 
 		private void print(object sender, MessageEventArgs e) {
-			this.Dispatcher.Invoke((Action)(() => {
+			Dispatcher.Invoke(() => {
 				txtConsole.AppendText(e.Message+"\n");
-				if(txtConsole.SelectionLength==0) {
+				if (txtConsole.SelectionLength==0) {
 					txtConsole.ScrollToEnd();
 				}
-			}));
+			});
 		}
 
 		private void threadFinished(object sender, EventArgs e) {
-			this.Dispatcher.Invoke((Action)(() => {
+			Dispatcher.Invoke(() => {
 				sender = null;
 				working = false;
 				StartNextIfAble();
-			}));
+			});
 		}
 	}
 

@@ -1,82 +1,80 @@
-﻿namespace LumpTools.Util {
+﻿using System.Numerics;
+
+using LibBSP;
+
+namespace LumpTools.Util {
 	public static class Swapper {
-		public static void Swap(BSP me, int a1, int a2) {
+		public static void Swap(BSP me, bool swapXY, bool swapXZ, bool swapYZ) {
 			// Entities
 			foreach(Entity e in me.Entities) {
-				Vector3D origin = e.Origin;
-				double temp = origin[a1];
-				origin[a1] = origin[a2];
-				origin[a2] = temp;
-				e.Origin = origin;
+				e.Origin = Swap(e.Origin, swapXY, swapXZ, swapYZ);
 			}
+
 			// Planes
-			foreach(Plane p in me.Planes) {
-				Vector3D normal = p.Normal;
-				double temp = normal[a1];
-				normal[a1] = normal[a2];
-				normal[a2] = temp;
-				p.Normal = normal;
+			for (int i = 0; i < me.Planes.Count; ++i) {
+				Plane p = me.Planes[i];
+				p.Normal = Swap(p.Normal, swapXY, swapXZ, swapYZ);
+				me.Planes[i] = p;
 			}
+
 			// Vertices
-			foreach(Vertex v in me.Vertices) {
-				Vector3D vertex = v.Vector;
-				double temp = vertex[a1];
-				vertex[a1] = vertex[a2];
-				vertex[a2] = temp;
-				v.Vector = vertex;
+			for (int i = 0; i < me.Vertices.Count; ++i) {
+				Vertex vertex = me.Vertices[i];
+				vertex.position = Swap(vertex.position, swapXY, swapXZ, swapYZ);
+				me.Vertices[i] = vertex;
 			}
+
 			// Nodes
-			foreach(Node n in me.Nodes) {
-				Vector3D mins = n.Mins;
-				Vector3D maxs = n.Maxs;
-				double mintemp = mins[a1];
-				mins[a1] = mins[a2];
-				mins[a2] = mintemp;
-				double maxtemp = maxs[a1];
-				maxs[a1] = maxs[a2];
-				maxs[a2] = maxtemp;
-				n.Mins = mins;
-				n.Maxs = maxs;
+			for (int i = 0; i < me.Nodes.Count; ++i) {
+				Node node = me.Nodes[i];
+				node.Minimums = Swap(node.Minimums, swapXY, swapXZ, swapYZ);
+				node.Maximums = Swap(node.Maximums, swapXY, swapXZ, swapYZ);
+				me.Nodes[i] = node;
 			}
+
 			// Leaves
-			foreach(Leaf l in me.Leaves) {
-				Vector3D mins = l.Mins;
-				Vector3D maxs = l.Maxs;
-				double mintemp = mins[a1];
-				mins[a1] = mins[a2];
-				mins[a2] = mintemp;
-				double maxtemp = maxs[a1];
-				maxs[a1] = maxs[a2];
-				maxs[a2] = maxtemp;
-				l.Mins = mins;
-				l.Maxs = maxs;
+			for (int i = 0; i < me.Leaves.Count; ++i) {
+				Leaf leaf = me.Leaves[i];
+				leaf.Minimums = Swap(leaf.Minimums, swapXY, swapXZ, swapYZ);
+				leaf.Maximums = Swap(leaf.Maximums, swapXY, swapXZ, swapYZ);
+				me.Leaves[i] = leaf;
 			}
+
 			// Models
-			foreach(Model m in me.Models) {
-				Vector3D mins = m.Mins;
-				Vector3D maxs = m.Maxs;
-				double mintemp = mins[a1];
-				mins[a1] = mins[a2];
-				mins[a2] = mintemp;
-				double maxtemp = maxs[a1];
-				maxs[a1] = maxs[a2];
-				maxs[a2] = maxtemp;
-				m.Mins = mins;
-				m.Maxs = maxs;
+			for (int i = 0; i < me.Models.Count; ++i) {
+				Model model = me.Models[i];
+				model.Minimums = Swap(model.Minimums, swapXY, swapXZ, swapYZ);
+				model.Maximums = Swap(model.Maximums, swapXY, swapXZ, swapYZ);
+				me.Models[i] = model;
 			}
+
 			// Texinfos
-			foreach(TexInfo ti in me.TexInfo) {
-				Vector3D sAxis = ti.SAxis;
-				Vector3D tAxis = ti.TAxis;
-				double stemp = sAxis[a1];
-				sAxis[a1] = sAxis[a2];
-				sAxis[a2] = stemp;
-				double ttemp = tAxis[a1];
-				tAxis[a1] = tAxis[a2];
-				tAxis[a2] = ttemp;
-				ti.SAxis = sAxis;
-				ti.TAxis = tAxis;
+			for (int i = 0; i < me.TextureInfo.Count; ++i) {
+				TextureInfo info = me.TextureInfo[i];
+				info.UAxis = Swap(info.UAxis, swapXY, swapXZ, swapYZ);
+				info.VAxis = Swap(info.VAxis, swapXY, swapXZ, swapYZ);
+				me.TextureInfo[i] = info;
 			}
+		}
+
+		public static Vector3 Swap(Vector3 v, bool swapXY, bool swapXZ, bool swapYZ) {
+			if (swapXY) {
+				float x = v.X;
+				v.X = v.Y;
+				v.Y = x;
+			}
+			if (swapXZ) {
+				float x = v.X;
+				v.X = v.Z;
+				v.Z = x;
+			}
+			if (swapYZ) {
+				float y = v.Y;
+				v.Y = v.Z;
+				v.Z = y;
+			}
+
+			return v;
 		}
 	}
 }

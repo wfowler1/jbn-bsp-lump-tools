@@ -1,8 +1,9 @@
 ﻿using System;
+using System.Numerics;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using LibBSP;
 
 namespace LumpTools.Util {
 
@@ -19,62 +20,85 @@ namespace LumpTools.Util {
 
 	public static class Corrupter {
 		
-		public static void Corrupt(BSP me, CorruptionMode mode, CorruptionValue values, double range, double percentage) {
-			if(percentage == 0.0) { return; }
-			if(mode == CorruptionMode.RANDOM) {
+		public static void Corrupt(BSP me, CorruptionMode mode, CorruptionValue values, float range, float percentage) {
+			if (percentage == 0.0) { return; }
+			if (mode == CorruptionMode.RANDOM) {
 				RandomCorruption(me, values, range, percentage);
 			} else {
 				ReplacingCorruption(me, values, range, percentage);
 			}
 		}
 
-		public static void RandomCorruption(BSP me, CorruptionValue values, double range, double percentage) {
+		public static void RandomCorruption(BSP me, CorruptionValue values, float range, float percentage) {
 			Random rand = new Random();
-			foreach(Vertex v in me.Vertices) {
-				for(int i=0;i<3;i++) {
+			for (int i = 0; i < me.Vertices.Count; ++i) {
+				if (values == CorruptionValue.ZERO) {
+					Vertex v = me.Vertices[i];
+					Vector3 position = v.position;
 					double probability = rand.NextDouble();
-					if(probability < percentage) {
-						if(values == CorruptionValue.ZERO) {
-							v[i] = 0.0;
-						} else if(values == CorruptionValue.RELATIVE) {
-							v[i] += (rand.NextDouble()*2.0*range) - range;
-						} else {
-							v[i] = (rand.NextDouble()*2.0*range) - range;
-						}
+
+					if (probability < percentage) {
+						position.X = 0;
+						position.Y = 0;
+						position.Z = 0;
+					} else if (values == CorruptionValue.RELATIVE) {
+						position.X += (float)(rand.NextDouble() * 2.0f * range) - range;
+						position.Y += (float)(rand.NextDouble() * 2.0f * range) - range;
+						position.Z += (float)(rand.NextDouble() * 2.0f * range) - range;
+					} else {
+						position.X = (float)(rand.NextDouble() * 2.0f * range) - range;
+						position.Y = (float)(rand.NextDouble() * 2.0f * range) - range;
+						position.Z = (float)(rand.NextDouble() * 2.0f * range) - range;
 					}
+
+					v.position = position;
+					me.Vertices[i] = v;
 				}
 			}
 
-			foreach(Plane p in me.Planes) {
+			for (int i = 0; i < me.Planes.Count; ++i) {
+				Plane p = me.Planes[i];
 				double probability = rand.NextDouble();
-				if(probability < percentage) {
-					if(values == CorruptionValue.ZERO) {
-						p.Dist = 0.0;
-					} else if(values == CorruptionValue.RELATIVE) {
-						p.Dist += (rand.NextDouble()*2.0*range) - range;
+
+				if (probability < percentage) {
+					if (values == CorruptionValue.ZERO) {
+						p.D = 0.0f;
+					} else if (values == CorruptionValue.RELATIVE) {
+						p.D += (float)(rand.NextDouble() * 2.0f * range) - range;
 					} else {
-						p.Dist = (rand.NextDouble()*2.0*range) - range;
+						p.D = (float)(rand.NextDouble() * 2.0f * range) - range;
 					}
 				}
+
+				me.Planes[i] = p;
 			}
 
 		}
 
-		public static void ReplacingCorruption(BSP me, CorruptionValue values, double range, double percentage) {
+		public static void ReplacingCorruption(BSP me, CorruptionValue values, float range, float percentage) {
 			Random rand = new Random();
 
 			// Populate a list with all possible values to be replaced
-			List<double> valuesToReplace = new List<double>();
-			foreach(Vertex v in me.Vertices) {
-				for(int i=0;i<2;i++) {
-					if(!valuesToReplace.Contains(v[i])) {
-						valuesToReplace.Add(v[i]);
+			List<float> valuesToReplace = new List<float>();
+			
+			foreach (Vertex v in me.Vertices) {
+				Vector3 position = v.position;
+				for (int i = 0; i < 2; i++) {
+					if (!valuesToReplace.Contains(position.X)) {
+						valuesToReplace.Add(position.X);
+					}
+					if (!valuesToReplace.Contains(position.Y)) {
+						valuesToReplace.Add(position.Y);
+					}
+					if (!valuesToReplace.Contains(position.Z)) {
+						valuesToReplace.Add(position.Z);
 					}
 				}
 			}
-			foreach(Plane p in me.Planes) {
-				if(!valuesToReplace.Contains(p.Dist)) {
-					valuesToReplace.Add(p.Dist);
+
+			foreach (Plane p in me.Planes) {
+				if (!valuesToReplace.Contains(p.D)) {
+					valuesToReplace.Add(p.D);
 				}
 			}
 
@@ -82,28 +106,45 @@ namespace LumpTools.Util {
 			int numCorruptions = (int)Math.Ceiling(valuesToReplace.Count * percentage);
 
 			// Perform that many corruptions
-			for(int i=0;i<numCorruptions;i++) {
+			for (int i = 0; i < numCorruptions; i++) {
 				int indexToCorrupt = rand.Next(0, valuesToReplace.Count);
-				double valueToCorrupt = valuesToReplace[indexToCorrupt];
-				double newValue = 0.0;
-				if(values == CorruptionValue.RELATIVE) {
-					newValue = valueToCorrupt + (rand.NextDouble()*2.0*range) - range;
-				} else if(values == CorruptionValue.RANDOM) {
-					newValue = (rand.NextDouble()*2.0*range) - range;
+				float valueToCorrupt = valuesToReplace[indexToCorrupt];
+				float newValue = 0.0f;
+				if (values == CorruptionValue.RELATIVE) {
+					newValue = valueToCorrupt + (float)(rand.NextDouble() * 2.0f * range) - range;
+				} else if (values == CorruptionValue.RANDOM) {
+					newValue = (float)(rand.NextDouble() * 2.0f * range) - range;
 				}
+
 				// Replace EVERY instance of the value with the corruption
 				valuesToReplace[indexToCorrupt] = newValue;
-				foreach(Vertex v in me.Vertices) {
-					for(int j=0;j<3;j++) {
-						if(v[j] == valueToCorrupt) {
-							v[j] = newValue;
-						}
+
+				for (int j = 0; j < me.Vertices.Count; ++j) {
+					Vertex v = me.Vertices[j];
+					Vector3 position = v.position;
+
+					if (position.X == valueToCorrupt) {
+						position.X = newValue;
 					}
+					if (position.Y == valueToCorrupt) {
+						position.Y = newValue;
+					}
+					if (position.Z == valueToCorrupt) {
+						position.Z = newValue;
+					}
+
+					v.position = position;
+					me.Vertices[j] = v;
 				}
-				foreach(Plane p in me.Planes) {
-					if(p.Dist == valueToCorrupt) {
-						p.Dist = newValue;
+
+				for (int j = 0; j < me.Planes.Count; ++j) {
+					Plane p = me.Planes[j];
+					
+					if (p.D == valueToCorrupt) {
+						p.D = newValue;
 					}
+
+					me.Planes[j] = p;
 				}
 			}
 

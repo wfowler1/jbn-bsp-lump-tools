@@ -1,54 +1,56 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Numerics;
+
+using LibBSP;
 
 namespace LumpTools.Util {
 	public static class Optimizer {
-		public static void optimize(BSP me) {
-			optimizeEntities(me);
-			optimizePlanes(me);
-			optimizeTextures(me);
-			optimizeMaterials(me);
-			optimizeNormals(me);
-			fastOptimizeIndices(me);
-			optimizeVis(me);
-			//optimizeTexInfo(me);
+		public static void Optimize(BSP me) {
+			OptimizeEntities(me);
+			OptimizePlanes(me);
+			OptimizeTextures(me);
+			OptimizeMaterials(me);
+			OptimizeNormals(me);
+			FastOptimizeIndices(me);
+			OptimizeVis(me);
+			OptimizeTexInfo(me);
 
 		}
 
 		// Each entity has a unique instance in the engine, therefore even identical
 		// entities are unique. However some attributes can be culled, for example
 		// an "angles" attribute of "0 0 0".
-		public static void optimizeEntities(BSP me) {
-			for(int i=0;i<me.Entities.Count;i++) {
+		public static void OptimizeEntities(BSP me) {
+			for (int i = 0; i < me.Entities.Count; ++i) {
 				Entity ent = me.Entities[i];
-				switch(ent["classname"]) {
+				switch (ent["classname"]) {
 					case "multi_manager":
 					case "multisource":
 					case "env_fade":
 					case "trigger_relay":
 					case "multi_kill_manager":
 					case "trigger_counter":
-					case "trigger_auto":
+					case "trigger_auto": {
 						ent.Remove("angles");
 						ent.Remove("origin");
 						break;
+					}
 					case "light":
-					case "light_spot":
-						if(ent["targetname"] == "") {
+					case "light_spot": {
+						if (ent["targetname"] == "") {
 							me.Entities.RemoveAt(i);
-							i--;
+							--i;
 							continue;
 						}
 						break;
+					}
 
 				}
-				if(ent.Angles[0]==0 && ent.Angles[1]==0 && ent.Angles[2]==0) {
+				if (ent.Angles == Vector3.Zero) {
 					ent.Remove("angles");
 				}
-				if(ent.Origin[0]==0 && ent.Origin[1]==0 && ent.Origin[2]==0) {
+				if (ent.Origin == Vector3.Zero) {
 					ent.Remove("origin");
 				}
 				ent.Remove("sequencename");
@@ -60,92 +62,105 @@ namespace LumpTools.Util {
 		// is usually pretty good about recycling identical planes, but many planes have their
 		// backward counterpart included in the map for some reason. For instance, a plane
 		// ((1,0,0),456) will be the same as ((-1,0,0),-456)
-		public static void optimizePlanes(BSP me) {
+		public static void OptimizePlanes(BSP me) {
 			int numDeleted = 0;
-			for(int i=0;i<me.Planes.Count;i++) {
-				for(int j=i+1;j<me.Planes.Count;j++) {
-					if(me.Planes[i] == me.Planes[j]) {
+			for (int i = 0; i < me.Planes.Count; ++i) {
+				for (int j = i + 1; j < me.Planes.Count; ++j) {
+					if (me.Planes[i] == me.Planes[j]) {
 						me.Planes.RemoveAt(j);
-						numDeleted++;
+						++numDeleted;
 						// Must now correct all references to this plane, and all those after it
-						for(int k=0;k<me.Faces.Count;k++) {
-							if(me.Faces[k].Plane > j) {
-								me.Faces[k].Plane -= 1;
-							} else if(me.Faces[k].Plane == j) {
-								me.Faces[k].Plane = i;
+						for (int k = 0; k < me.Faces.Count; ++k) {
+							Face face = me.Faces[k];
+							if (face.PlaneIndex > j) {
+								face.PlaneIndex -= 1;
+							} else if (face.PlaneIndex == j) {
+								face.PlaneIndex = i;
 							}
+							me.Faces[k] = face;
 						}
-						for(int k=0;k<me.Nodes.Count;k++) {
-							if(me.Nodes[k].Plane > j) {
-								me.Nodes[k].Plane -= 1;
-							} else if(me.Nodes[k].Plane == j) {
-								me.Nodes[k].Plane = i;
+						for (int k = 0; k < me.Nodes.Count; ++k) {
+							Node node = me.Nodes[k];
+							if (node.PlaneIndex > j) {
+								node.PlaneIndex -= 1;
+							} else if (node.PlaneIndex == j) {
+								node.PlaneIndex = i;
 							}
+							me.Nodes[k] = node;
 						}
-						for(int k=0;k<me.BrushSides.Count;k++) {
-							if(me.BrushSides[k].Plane > j) {
-								me.BrushSides[k].Plane -= 1;
-							} else if(me.BrushSides[k].Plane == j) {
-								me.BrushSides[k].Plane = i;
+						for (int k = 0; k < me.BrushSides.Count; ++k) {
+							BrushSide brushSide = me.BrushSides[k];
+							if (brushSide.PlaneIndex > j) {
+								brushSide.PlaneIndex -= 1;
+							} else if (brushSide.PlaneIndex == j) {
+								brushSide.PlaneIndex = i;
 							}
+							me.BrushSides[k] = brushSide;
 						}
-						j--;
+						--j;
 					}
 				}
 			}
-			Console.WriteLine("Deleted "+numDeleted+" duplicate planes");
+
+			Console.WriteLine("Deleted " + numDeleted + " duplicate planes");
 		}
 		
 		// Usually the compiler doesn't duplicate textures or materials. But if something strange
 		// is going on, or the BSP was modified by an outside source (such as this program) then
 		// they may exist and are trivial to reuse.
-		public static void optimizeTextures(BSP me) {
+		public static void OptimizeTextures(BSP me) {
 			int numDeleted = 0;
-			for(int i=0;i<me.Textures.Count;i++) {
-				for(int j=i+1;j<me.Textures.Count;j++) {
-					if(me.Textures[i] == me.Textures[j]) {
+			for (int i = 0; i < me.Textures.Count; ++i) {
+				for (int j = i + 1; j < me.Textures.Count; ++j) {
+					if (me.Textures[i].Name == me.Textures[j].Name) {
 						me.Textures.RemoveAt(j);
-						numDeleted++;
+						++numDeleted;
 						// Fix references
-						for(int k=0;k<me.Faces.Count;k++) {
-							if(me.Faces[k].Texture > j) {
-								me.Faces[k].Texture -= 1;
-							} else if(me.Faces[k].Texture==j) {
-								me.Faces[k].Texture = i;
+						for (int k = 0; k < me.Faces.Count; ++k) {
+							Face face = me.Faces[k];
+							if (face.TextureIndex > j) {
+								face.TextureIndex -= 1;
+							} else if (face.TextureIndex == j) {
+								face.TextureIndex = i;
 							}
+							me.Faces[k] = face;
 						}
-						j--;
+						--j;
 					}
 				}
 			}
-			Console.WriteLine("Deleted "+numDeleted+" duplicate textures");
+
+			Console.WriteLine("Deleted " + numDeleted + " duplicate textures");
 		}
 		
-		public static void optimizeMaterials(BSP me) {
+		public static void OptimizeMaterials(BSP me) {
 			int numDeleted = 0;
-			for(int i=0;i<me.Materials.Count;i++) {
-				for(int j=i+1;j<me.Materials.Count;j++) {
-					if(me.Materials[i] == me.Materials[j]) {
+			for (int i = 0; i < me.Materials.Count; ++i) {
+				for (int j = i + 1; j < me.Materials.Count; ++j) {
+					if (me.Materials[i].Name == me.Materials[j].Name) {
 						me.Materials.RemoveAt(j);
-						numDeleted++;
-						for(int k=0;k<me.Faces.Count;k++) {
-							if(me.Faces[k].Material > j) {
-								me.Faces[k].Material -= 1;
-							} else if(me.Faces[k].Material==j) {
-								me.Faces[k].Material = i;
+						++numDeleted;
+						for (int k = 0; k < me.Faces.Count; ++k) {
+							Face face = me.Faces[k];
+							if (face.MaterialIndex > j) {
+								face.MaterialIndex -= 1;
+							} else if (face.MaterialIndex == j) {
+								face.MaterialIndex = i;
 							}
+							me.Faces[k] = face;
 						}
-						j--;
+						--j;
 					}
 				}
 			}
-			Console.WriteLine("Deleted "+numDeleted+" duplicate materials");
+
+			Console.WriteLine("Deleted " + numDeleted + " duplicate materials");
 		}
 
 		// The bloated unused "null" lump. We can just set its length to 0.
 		// Depending on the complexity of the map, this can reduce size a good deal.
-		public static void optimizeNormals(BSP me) {
-			me.Normals.Length = 0;
+		public static void OptimizeNormals(BSP me) {
+			me.Normals.Clear();
 			Console.WriteLine("Deleted normals lump");
 		}
 
@@ -159,30 +174,35 @@ namespace LumpTools.Util {
 		// In theory, only the slow way should be used because the quick way makes too many assumptions
 		// about the data, but in practice the data ALWAYS follows the same pattern. Therefore either
 		// method should give the same result, and should crush this lump to 200 bytes or less.
-		public static void optimizeIndices(BSP me) {
+		public static void OptimizeIndices(BSP me) {
 			// TODO
 		}
 
 		// This is the "fast" method that cuts corners and assumes way too much about the data. I'll
 		// document the assumptions as I make them, though they seem to be safe anyway.
-		public static void fastOptimizeIndices(BSP me) {
+		public static void FastOptimizeIndices(BSP me) {
 			long largestIndex = 2; // Assumption: Highest index will always be at least 2.
-			for(int i=0;i<me.Indices.Count/3;i++) {
-				if(me.Indices[(i*3) + 2] > largestIndex) { // Assumption: Every third index will be greater than the previous two
-					largestIndex = me.Indices[(i*3) + 2];
+
+			for (int i = 0; i < me.Indices.Count / 3; ++i) {
+				if (me.Indices[(i * 3) + 2] > largestIndex) { // Assumption: Every third index will be greater than the previous two
+					largestIndex = me.Indices[(i * 3) + 2];
 				}
 			}
-			NumList newIndices = new NumList(NumList.dataType.UINT);
-			for(int i=0;i<largestIndex-1;i++) { // Assumption: If the highest index is N, there will be N-1 sets of three ints
-				newIndices.Add(0); // Assumption: The first index in a triple will always be 0
-				newIndices.Add(i+1); // Assumption: The second index is always the current set of three plus one
-				newIndices.Add(i+2); // Assumption: The third index is always the current set of three plus two
+
+			me.Indices.Clear();
+			for (int i = 0; i < largestIndex - 1; ++i) { // Assumption: If the highest index is N, there will be N-1 sets of three ints
+				me.Indices.Add(0); // Assumption: The first index in a triple will always be 0
+				me.Indices.Add(i + 1); // Assumption: The second index is always the current set of three plus one
+				me.Indices.Add(i + 2); // Assumption: The third index is always the current set of three plus two
 			}
-			me.Indices = newIndices;
-			for(int i=0;i<me.Faces.Count;i++) {
-				me.Faces[i].FirstIndex = 0; // Assumption: Every face starts at the beginning of the pattern, and will take what it needs
+
+			for (int i = 0; i < me.Faces.Count; ++i) {
+				Face face = me.Faces[i];
+				face.FirstIndexIndex = 0; // Assumption: Every face starts at the beginning of the pattern, and will take what it needs
+				me.Faces[i] = face;
 			}
-			Console.WriteLine("Indices optimized to "+(newIndices.Count*4)+" bytes.");
+
+			Console.WriteLine("Indices optimized to " + (me.Indices.Count * 4) + " bytes.");
 		}
 
 		// This will delete duplicate "potentially visible sets" for visleafs. Though it is rare
@@ -191,47 +211,80 @@ namespace LumpTools.Util {
 		// visibility list, but I can determine it easily from a quick analysis of the Leaves lump.
 		// Therefore it's a quick array comparison to determine whether one is equivalent to another
 		// and if it can therefore be reused.
-		public static void optimizeVis(BSP me) {
+		public static void OptimizeVis(BSP me) {
 			int numDeleted = 0;
-			for(int i=0;i<me.Vis.Count;i++) {
-				for(int j=i+1;j<me.Vis.Count;j++) {
-					if(me.Vis[i] == me.Vis[j]) {
-						me.Vis.RemoveAt(j); // Since PVSes are stored as bare LumpObjects, their data arrays will be compared using ==
-						numDeleted++;
-						for(int k=0;k<me.Leaves.Count;k++) {
-							if(me.Leaves[k].PVS > me.Vis[i].Length*j) {
-								me.Leaves[k].PVS -= me.Vis[i].Length;
-							} else if(me.Leaves[k].PVS == me.Vis[i].Length*j) {
-								me.Leaves[k].PVS = me.Vis[i].Length*i;
-							}
-						}
-						j--;
+			int length = me.Leaves[2].Visibility;
+
+			for (int i = 0; i < me.Leaves.Count; ++i) {
+				Leaf leaf = me.Leaves[i];
+				int visOffset = leaf.Visibility;
+				if (visOffset < 0) {
+					continue;
+				}
+				for (int j = i + 1; j < me.Leaves.Count; ++j) {
+					Leaf other = me.Leaves[j];
+					int otherVisOffset = other.Visibility;
+					if (otherVisOffset < 0 || visOffset == otherVisOffset) {
+						continue;
 					}
+					bool same = true;
+					for (int k = 0; k < length; ++k) {
+						if (me.Visibility.Data[visOffset + k] != me.Visibility.Data[otherVisOffset + k]) {
+							same = false;
+							break;
+						}
+					}
+					if (same) {
+						byte[] newData = new byte[me.Visibility.Data.Length - length];
+						Array.Copy(me.Visibility.Data, 0, newData, 0, otherVisOffset);
+						Array.Copy(me.Visibility.Data, otherVisOffset + length, newData, otherVisOffset, me.Visibility.Data.Length - otherVisOffset - length);
+						me.Visibility.Data = newData;
+						other.Visibility = visOffset;
+						for (int k = j + 1; k < me.Leaves.Count; ++k) {
+							Leaf nextLeaf = me.Leaves[k];
+							nextLeaf.Visibility -= length;
+							me.Leaves[k] = nextLeaf;
+						}
+						++numDeleted;
+					}
+					me.Leaves[j] = other;
 				}
 			}
-			Console.WriteLine("Deleted "+numDeleted+" duplicate PVS lists for "+(numDeleted*me.Vis[0].Length)+" bytes.");
+
+			Console.WriteLine("Deleted " + numDeleted + " duplicate PVS lists for " + (numDeleted * length) + " bytes.");
 		}
 
-		// Also remove duplicate TexInfos. This always gave me "AllocLightmap: Full" errors before,
-		// hopefully that doesn't happen this time.
-		public static void optimizeTexInfo(BSP me) {
+		public static void OptimizeTexInfo(BSP me) {
 			int numDeleted = 0;
-			for(int i=0;i<me.TexInfo.Count;i++) {
-				for(int j=i+1;j<me.TexInfo.Count;j++) {
-					if(me.TexInfo[i] == me.TexInfo[j]) {
-						me.TexInfo.RemoveAt(j);
-						numDeleted++;
-						for(int k=0;k<me.Faces.Count;k++) {
-							if(me.Faces[k].TextureScale > j) {
-								me.Faces[k].TextureScale -= 1;
-							} else if(me.Faces[k].TextureScale == j) {
-								me.Faces[k].TextureScale = i;
+			for (int i = 0; i < me.TextureInfo.Count; ++i) {
+				TextureInfo texInfo = me.TextureInfo[i];
+				for (int j = i + 1; j < me.TextureInfo.Count; ++j) {
+					TextureInfo otherTexInfo = me.TextureInfo[j];
+					if (texInfo.UAxis == otherTexInfo.UAxis
+						&& texInfo.VAxis == otherTexInfo.VAxis
+						&& texInfo.Translation == otherTexInfo.Translation) {
+						me.TextureInfo.RemoveAt(j);
+						++numDeleted;
+						for (int k = 0; k < me.Faces.Count; ++k) {
+							Face face = me.Faces[k];
+							if (face.TextureInfoIndex > j) {
+								face.TextureInfoIndex -= 1;
+							} else if(face.TextureInfoIndex == j) {
+								face.TextureInfoIndex = i;
 							}
+							if (face.LightmapTextureInfoIndex > j) {
+								face.LightmapTextureInfoIndex -= 1;
+							} else if (face.LightmapTextureInfoIndex == j) {
+								face.LightmapTextureInfoIndex = i;
+							}
+							me.Faces[k] = face;
 						}
+						--j;
 					}
 				}
 			}
-			Console.WriteLine("Deleted "+numDeleted+" duplicate texinfos");
+
+			Console.WriteLine("Deleted " + numDeleted + " duplicate texinfos");
 		}
 	}
 }
